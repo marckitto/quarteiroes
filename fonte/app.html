@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quarteirão por Endereço</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icone-192.png">
+<meta name="theme-color" content="#1f5fbf">
+<style>/*__LEAFLET_CSS__*/</style>
+<style>
+:root{
+  --bg:#f6f7f9; --painel:#ffffff; --borda:#dfe3e8; --texto:#1c2026; --suave:#5d6670; --fraco:#8b949e;
+  --realce:#1f5fbf; --realce-bg:#e8f0fc;
+  --alta:#1e7a46; --alta-bg:#e3f4ea; --media:#8a6100; --media-bg:#fdf3d7;
+  --baixa:#b3401f; --baixa-bg:#fbe7e0; --nao:#59626c; --nao-bg:#eceff2;
+  --mono:ui-monospace,"Cascadia Mono","Segoe UI Mono","Roboto Mono",Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --raio:8px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121417; --painel:#1a1d21; --borda:#2c3138; --texto:#e6e8eb; --suave:#a3abb5; --fraco:#7b838c;
+    --realce:#6ea3ff; --realce-bg:#1b2840;
+    --alta:#5fcf8d; --alta-bg:#16301f; --media:#e8b54a; --media-bg:#33290f;
+    --baixa:#f08a68; --baixa-bg:#3a1f17; --nao:#a3abb5; --nao-bg:#24282d;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121417; --painel:#1a1d21; --borda:#2c3138; --texto:#e6e8eb; --suave:#a3abb5; --fraco:#7b838c;
+  --realce:#6ea3ff; --realce-bg:#1b2840;
+  --alta:#5fcf8d; --alta-bg:#16301f; --media:#e8b54a; --media-bg:#33290f;
+  --baixa:#f08a68; --baixa-bg:#3a1f17; --nao:#a3abb5; --nao-bg:#24282d;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--texto);font:14px/1.45 var(--sans)}
+button,input,select,textarea{font:inherit;color:inherit}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 20px;background:var(--painel);border-bottom:1px solid var(--borda);position:sticky;top:0;z-index:1000}
+header h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.1px}
+header .sub{color:var(--suave);font-size:12px}
+nav{display:flex;gap:2px;margin-left:8px;flex-wrap:wrap}
+nav button{background:none;border:0;padding:7px 12px;border-radius:6px;cursor:pointer;color:var(--suave);font-weight:550}
+nav button[aria-selected="true"]{background:var(--realce-bg);color:var(--realce)}
+nav button .n{font-family:var(--mono);font-size:12px;margin-left:4px}
+.status{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--borda);border-radius:999px;font-size:12px;color:var(--suave);background:var(--painel);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--fraco)}
+.dot.ok{background:var(--alta)} .dot.warn{background:var(--media)} .dot.err{background:var(--baixa)}
+main{padding:18px 20px 40px;max-width:1500px;margin:0 auto}
+.aba{display:none} .aba.ativa{display:block}
+.card{background:var(--painel);border:1px solid var(--borda);border-radius:var(--raio);padding:16px}
+.card h2{font-size:15px;margin:0 0 10px;font-weight:650}
+.card h3{font-size:13px;margin:14px 0 6px;color:var(--suave);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.grid2{display:grid;grid-template-columns:minmax(330px,1fr) minmax(380px,1.25fr);gap:16px;align-items:start}
+@media (max-width:980px){.grid2{grid-template-columns:1fr}}
+.linha{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.campo{display:flex;flex-direction:column;gap:4px;min-width:150px;flex:1}
+.campo label{font-size:12px;color:var(--suave);font-weight:550}
+input[type=text],input[type=email],input[type=password],input[type=number],select,textarea{border:1px solid var(--borda);background:var(--bg);border-radius:6px;padding:7px 9px;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--realce);box-shadow:0 0 0 3px var(--realce-bg)}
+.btn{border:1px solid var(--borda);background:var(--painel);border-radius:6px;padding:7px 13px;cursor:pointer;font-weight:550;white-space:nowrap}
+.btn:hover{border-color:var(--suave)}
+.btn.pri{background:var(--realce);border-color:var(--realce);color:#fff}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.peq{padding:4px 9px;font-size:12px}
+.drop{border:2px dashed var(--borda);border-radius:var(--raio);padding:34px;text-align:center;color:var(--suave);cursor:pointer;background:var(--painel)}
+.drop.sobre{border-color:var(--realce);background:var(--realce-bg);color:var(--realce)}
+.drop strong{color:var(--texto)}
+.nota{font-size:12px;color:var(--suave)}
+.aviso{padding:9px 12px;border-radius:6px;background:var(--media-bg);color:var(--media);font-size:13px}
+.ok-msg{padding:9px 12px;border-radius:6px;background:var(--alta-bg);color:var(--alta);font-size:13px}
+.err-msg{padding:9px 12px;border-radius:6px;background:var(--baixa-bg);color:var(--baixa);font-size:13px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-radius:8px;border:1px solid var(--borda);background:var(--painel);cursor:pointer;min-width:130px;text-align:left}
+.chip .v{font-family:var(--mono);font-size:20px;font-weight:650}
+.chip .r{font-size:12px;color:var(--suave)}
+.chip[aria-pressed="true"]{outline:2px solid var(--realce)}
+.c-ALTA{color:var(--alta)} .c-MEDIA{color:var(--media)} .c-BAIXA{color:var(--baixa)} .c-NAO{color:var(--nao)}
+.tag{display:inline-block;padding:1px 7px;border-radius:4px;font-size:11.5px;font-weight:650;white-space:nowrap}
+.tag.ALTA{background:var(--alta-bg);color:var(--alta)} .tag.MEDIA{background:var(--media-bg);color:var(--media)}
+.tag.BAIXA{background:var(--baixa-bg);color:var(--baixa)} .tag.NAO{background:var(--nao-bg);color:var(--nao)}
+.tag.cond{background:var(--realce-bg);color:var(--realce)}
+.tabela-wrap{overflow:auto;border:1px solid var(--borda);border-radius:var(--raio);background:var(--painel);max-height:62vh}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 9px;border-bottom:1px solid var(--borda);text-align:left;vertical-align:top}
+th{position:sticky;top:0;background:var(--painel);font-size:12px;color:var(--suave);font-weight:600;z-index:1}
+tr.click{cursor:pointer} tr.click:hover td{background:var(--realce-bg)}
+td.obs{color:var(--suave);font-size:12px;max-width:380px}
+.mapa{height:520px;border-radius:var(--raio);border:1px solid var(--borda);background:var(--bg)}
+.leaflet-container{background:var(--bg);font:inherit}
+.rotulo-q{font-family:var(--mono);font-size:11px;color:var(--texto);text-shadow:0 0 3px var(--painel),0 0 3px var(--painel);white-space:nowrap;pointer-events:none}
+.sug{display:flex;flex-direction:column;border:1px solid var(--borda);border-radius:6px;max-height:210px;overflow:auto;margin-top:4px}
+.sug button{all:unset;padding:6px 9px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--borda);font-size:13px}
+.sug button:last-child{border-bottom:0}
+.sug button:hover,.sug button.sel{background:var(--realce-bg)}
+.sug .s{font-family:var(--mono);color:var(--fraco);font-size:12px}
+dl.ficha{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;margin:0;font-size:13px}
+dl.ficha dt{color:var(--suave)} dl.ficha dd{margin:0}
+.navrev{display:flex;align-items:center;gap:8px}
+.kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--borda);border-radius:4px;padding:0 4px;color:var(--suave)}
+.oculto{display:none!important}
+.esp{height:12px}
+.lista-int{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.lista-int div{display:flex;gap:8px;align-items:center;font-size:13px}
+.barra{height:6px;background:var(--borda);border-radius:3px;overflow:hidden}
+.barra i{display:block;height:100%;background:var(--realce);width:0}
+.alts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.opc{display:flex;gap:8px;align-items:flex-start;margin:4px 0;cursor:pointer}.opc input{margin-top:3px;flex:none}
+footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Quarteirão por Endereço</h1>
+    <div class="sub">Vigilância em Saúde · Paulínia</div>
+  </div>
+  <nav role="tablist">
+    <button data-aba="processar" aria-selected="true">Processar</button>
+    <button data-aba="revisar">Revisar <span class="n" id="nRevisar"></span></button>
+    <button data-aba="condominios">Condomínios <span class="n" id="nCond"></span></button>
+    <button data-aba="base">Base e acesso</button>
+  </nav>
+  <div class="status">
+    <span class="pill" title="A lista carregada fica só neste navegador"><span class="dot ok"></span>Lista local</span>
+    <span class="pill" id="pillSync" title="Sincronização da base compartilhada"><span class="dot"></span><span>Offline</span></span>
+  </div>
+</header>
+
+<main>
+<!-- ============================================================ PROCESSAR -->
+<section class="aba ativa" id="aba-processar">
+  <div id="etapaArquivo">
+    <label class="drop" id="drop">
+      <input type="file" id="arquivo" accept=".xlsx,.csv,.txt" hidden>
+      <div style="font-size:15px"><strong>Arraste a planilha de endereços aqui</strong> ou clique para escolher</div>
+      <div class="nota" style="margin-top:6px">.xlsx ou .csv · o arquivo é lido neste computador e não é enviado para lugar nenhum</div>
+    </label>
+  </div>
+
+  <div id="etapaColunas" class="card oculto">
+    <h2 id="tituloArquivo">Colunas</h2>
+    <div class="linha" id="linhaAba"></div>
+    <div class="linha" style="margin-top:10px">
+      <div class="campo"><label>Rua / logradouro *</label><select id="colRua"></select></div>
+      <div class="campo"><label>Número</label><select id="colNum"></select></div>
+      <div class="campo"><label>Complemento</label><select id="colComp"></select></div>
+      <div class="campo"><label>Bairro</label><select id="colBairro"></select></div>
+      <div class="campo"><label>CEP</label><select id="colCep"></select></div>
+    </div>
+    <div class="esp"></div>
+    <div class="tabela-wrap" style="max-height:220px"><table id="previa"></table></div>
+    <div class="esp"></div>
+    <div class="linha">
+      <button class="btn pri" id="btnProcessar">Processar endereços</button>
+      <button class="btn" id="btnTrocar">Trocar arquivo</button>
+      <div style="flex:1;max-width:320px" class="oculto" id="progWrap"><div class="barra"><i id="prog"></i></div></div>
+    </div>
+  </div>
+
+  <div id="etapaResultado" class="oculto">
+    <div class="linha" style="justify-content:space-between;margin-bottom:12px">
+      <div class="chips" id="chips"></div>
+      <div class="linha">
+        <button class="btn pri" id="btnRevisar">Revisar pendências</button>
+        <button class="btn" id="btnExportar">Baixar planilha com quarteirões</button>
+        <button class="btn" id="btnNovo">Nova planilha</button>
+      </div>
+    </div>
+    <div class="linha" style="margin-bottom:8px">
+      <input type="text" id="filtroTexto" placeholder="Filtrar por rua, quarteirão…" style="max-width:320px">
+      <span class="nota" id="contFiltro"></span>
+    </div>
+    <div class="tabela-wrap"><table id="tabRes"></table></div>
+    <p class="nota">Clique numa linha para revisar ou corrigir aquele endereço.</p>
+  </div>
+</section>
+
+<!-- ============================================================ REVISAR -->
+<section class="aba" id="aba-revisar">
+  <div id="revVazio" class="card"><h2>Nada para revisar</h2><p class="nota">Processe uma planilha na aba Processar. As linhas com confiança BAIXA, NÃO ENCONTRADO, endereços de portaria de condomínio e ruas corrigidas por semelhança aparecem aqui.</p></div>
+  <div id="revCorpo" class="oculto">
+    <div class="linha" style="justify-content:space-between;margin-bottom:12px">
+      <div class="navrev">
+        <button class="btn" id="revAnt" title="Anterior (Alt+←)">←</button>
+        <span class="mono" id="revPos"></span>
+        <button class="btn" id="revProx" title="Próximo (Alt+→)">→</button>
+        <select id="revFiltro" style="width:auto">
+          <option value="pend">Pendentes</option>
+          <option value="BAIXA">Só BAIXA</option>
+          <option value="NAO">Só NÃO ENCONTRADO</option>
+          <option value="cond">Só condomínios</option>
+          <option value="todos">Todas as linhas</option>
+        </select>
+      </div>
+      <span class="nota">Salvar <span class="kbd">Ctrl+Enter</span> · cada correção vira aprendizado para todos</span>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h2>Endereço da planilha <span id="revTag"></span></h2>
+        <dl class="ficha" id="revOrig"></dl>
+        <div id="revObs" class="nota" style="margin-top:8px"></div>
+        <div id="revCondBox" class="oculto" style="margin-top:12px"></div>
+
+        <h3>Correção</h3>
+        <div class="campo">
+          <label>Rua (escolha a rua certa da lista)</label>
+          <input type="text" id="revRua" autocomplete="off">
+          <div class="sug" id="revSug"></div>
+          <label class="nota" style="display:flex;gap:6px;align-items:center;margin-top:4px"><input type="checkbox" id="revRuaNova"> rua nova, não está no CNEFE (loteamento recente) — usar o nome como digitado</label>
+        </div>
+        <div class="linha" style="margin-top:10px">
+          <div class="campo" style="max-width:130px"><label>Número</label><input type="number" id="revNum" min="1"></div>
+          <div class="campo" style="max-width:170px"><label>Quarteirão</label><input type="text" id="revQ" class="mono" placeholder="ex.: 0815 ou 1075A"></div>
+          <div class="campo" id="revIntWrap" style="display:none"><label>Endereço interno do condomínio</label><input type="text" id="revInt" placeholder="ex.: QUADRA E"></div>
+        </div>
+        <div class="alts" id="revAlts"></div>
+        <div id="revMsg" style="margin-top:8px"></div>
+        <div class="linha" style="margin-top:12px">
+          <button class="btn pri" id="revSalvar">Salvar e próximo</button>
+          <button class="btn" id="revOk" title="Grava o quarteirão sugerido como confirmado">Confirmar sugestão</button>
+          <button class="btn" id="revPular">Pular</button>
+          <button class="btn" id="revCondNovo">Marcar como condomínio</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="linha" style="justify-content:space-between;margin-bottom:8px">
+          <h2 style="margin:0">Mapa <span class="nota">clique no quarteirão para escolher</span></h2>
+          <div class="linha">
+            <input type="text" id="revBuscaQ" class="mono" placeholder="ir ao quarteirão" style="width:140px">
+            <label class="nota" style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="chkFundo" checked> fundo OSM</label>
+          </div>
+        </div>
+        <div class="mapa" id="mapaRev"></div>
+        <p class="nota" id="legendaMapa">Pontos: números da rua no CNEFE (cor = quarteirão). Contorno grosso: sugestão.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ CONDOMÍNIOS -->
+<section class="aba" id="aba-condominios">
+  <div class="grid2">
+    <div class="card">
+      <div class="linha" style="justify-content:space-between">
+        <h2 style="margin:0">Condomínios e prédios</h2>
+        <button class="btn" id="condNovo">Novo condomínio</button>
+      </div>
+      <p class="nota">Pré-carregados do CNEFE (8+ unidades no mesmo número). <b>Portaria resolve</b>: todo o condomínio fica num quarteirão. <b>Precisa endereço interno</b>: ocupa vários quarteirões, então o endereço da portaria não basta.</p>
+      <div class="linha" style="margin-bottom:8px">
+        <input type="text" id="condFiltro" placeholder="Filtrar…" style="max-width:240px">
+        <select id="condSit" style="width:auto"><option value="">Todas as situações</option><option value="interno">Precisa endereço interno</option><option value="portaria">Portaria resolve</option></select>
+      </div>
+      <div class="tabela-wrap" style="max-height:60vh"><table id="tabCond"></table></div>
+    </div>
+    <div class="card">
+      <div id="condEditor"><p class="nota">Escolha um condomínio na lista para ver no mapa e editar.</p></div>
+      <div class="esp"></div>
+      <div class="mapa" id="mapaCond" style="height:420px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ BASE E ACESSO -->
+<section class="aba" id="aba-base">
+  <div class="grid2">
+    <div class="card">
+      <h2>Acesso à base compartilhada</h2>
+      <div id="loginBox">
+        <p class="nota">Com login, suas correções vão para a base de todos e você recebe as dos colegas. Sem login, o sistema funciona e guarda as correções neste navegador até você entrar.</p>
+        <div class="linha">
+          <div class="campo"><label>E-mail</label><input type="email" id="lgEmail" autocomplete="username"></div>
+          <div class="campo"><label>Senha</label><input type="password" id="lgSenha" autocomplete="current-password"></div>
+        </div>
+        <div class="linha" style="margin-top:10px">
+          <button class="btn pri" id="btnEntrar">Entrar</button>
+          <button class="btn" id="btnCriar">Criar conta</button>
+        </div>
+      </div>
+      <div id="logadoBox" class="oculto">
+        <p>Conectado como <b id="lgQuem"></b> <span id="lgPapel" class="tag cond"></span></p>
+        <div class="linha"><button class="btn" id="btnSync">Sincronizar agora</button><button class="btn" id="btnSair">Sair</button></div>
+      </div>
+      <div id="lgMsg" style="margin-top:10px"></div>
+
+      <div id="adminBox" class="oculto">
+        <h3>Usuários liberados</h3>
+        <div class="linha">
+          <div class="campo"><label>E-mail</label><input type="email" id="adEmail"></div>
+          <div class="campo"><label>Nome</label><input type="text" id="adNome"></div>
+          <div class="campo"><label>Divisão</label><input type="text" id="adDiv"></div>
+          <label class="nota" style="display:flex;gap:4px;align-items:center;align-self:flex-end;padding-bottom:8px"><input type="checkbox" id="adAdmin"> admin</label>
+          <button class="btn" id="adAdd" style="align-self:flex-end">Liberar</button>
+        </div>
+        <div class="tabela-wrap" style="margin-top:8px;max-height:260px"><table id="tabUsu"></table></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Base de conhecimento</h2>
+      <dl class="ficha" id="baseEstat"></dl>
+      <h3>Importar fonte de endereços</h3>
+      <p class="nota">Qualquer planilha que já tenha rua, número e quarteirão: histórico de casos, base da divisão, cadastro de imóveis, visitas… A planilha é analisada aqui no navegador; para a base vão só rua, número e quarteirão.</p>
+      <div class="linha"><input type="file" id="arqFonte" accept=".xlsx,.csv"></div>
+      <div id="impCorpo" class="oculto" style="margin-top:10px">
+        <div class="linha" id="impAbaLinha"></div>
+        <div class="linha" style="margin-top:8px">
+          <div class="campo"><label>Rua *</label><select id="impRua"></select></div>
+          <div class="campo" style="max-width:150px"><label>Número *</label><select id="impNum"></select></div>
+          <div class="campo" style="max-width:170px"><label>Quarteirão *</label><select id="impQ"></select></div>
+        </div>
+        <div class="campo" style="margin-top:8px"><label>Nome da fonte (aparece na base para todos)</label><input type="text" id="impNome" placeholder="ex.: histórico SVS 2015-2025" maxlength="40"></div>
+        <p class="nota">Use um nome neutro: evite citar agravo ou paciente (ex.: não use “casos de dengue”).</p>
+        <div class="linha" style="margin-top:6px"><button class="btn pri" id="impAnalisar">Analisar</button><span class="nota" id="impProg"></span></div>
+        <div id="impRel" style="margin-top:12px"></div>
+      </div>
+      <h3>Cópia de segurança</h3>
+      <div class="linha">
+        <button class="btn" id="btnExpApr">Exportar aprendizado (.json)</button>
+        <label class="btn">Importar aprendizado<input type="file" id="arqApr" accept=".json" hidden></label>
+      </div>
+      <h3>Privacidade</h3>
+      <p class="nota">A planilha de casos é lida e processada só neste navegador, e não fica salva depois que a página é fechada. Para a base compartilhada vão apenas <b>rua, número e quarteirão</b> (e os dados dos condomínios), com o usuário e o mês da correção, sem nome, agravo nem data de notificação.</p>
+      <h3>Configuração do servidor</h3>
+      <div class="campo"><label>URL do Supabase</label><input type="text" id="cfgUrl" class="mono"></div>
+      <div class="campo" style="margin-top:6px"><label>Chave pública (publishable)</label><input type="text" id="cfgKey" class="mono"></div>
+      <div class="linha" style="margin-top:8px"><button class="btn peq" id="cfgSalvar">Salvar configuração</button><button class="btn peq" id="cfgPadrao">Restaurar padrão</button></div>
+    </div>
+  </div>
+</section>
+</main>
+<footer>Base: <span id="rodape"></span></footer>
+
+<script id="dados" type="application/json">__DADOS__</script>
+<script>/*__LEAFLET_JS__*/</script>
+<script>/*__ENGINE__*/</script>
+<script>/*__APP__*/</script>
+</body>
+</html>
