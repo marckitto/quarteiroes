@@ -1679,6 +1679,20 @@ const Sync = {
     if (s) { this.apr = s.apr || this.apr; this.versao = s.versao || this.versao; this.fila = s.fila || []; }
     try { const c = JSON.parse(localStorage.getItem("qe-cfg") || "null"); if (c && c.url && c.key) this.cfg = c; } catch (e) {}
     try { this.sessao = JSON.parse(localStorage.getItem("qe-sessao") || "null"); } catch (e) {}
+    // volta do link de confirmação / recuperação de senha: o Supabase traz a sessão no endereço (#access_token=…)
+    if (location.hash.includes("access_token=")) {
+      const h = new URLSearchParams(location.hash.slice(1));
+      try {
+        const tok = h.get("access_token"); const payload = JSON.parse(atob(tok.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+        this.guardarSessao({ access_token: tok, refresh_token: h.get("refresh_token"), expires_at: +h.get("expires_at") || undefined, expires_in: +h.get("expires_in") || 3600 }, payload.email);
+        this._voltouDoEmail = true;
+      } catch (e) { console.warn("sessão do link", e); }
+      history.replaceState(null, "", location.pathname + location.search);
+    } else if (location.hash.includes("error=")) {
+      const h = new URLSearchParams(location.hash.slice(1));
+      this._erroLink = h.get("error_description") || h.get("error");
+      history.replaceState(null, "", location.pathname + location.search);
+    }
     aplicarAprendizado(false);
     if (this.sessao) this.sincronizar();
     else this.atualizarPill();
@@ -1732,7 +1746,8 @@ const Sync = {
     await this.sincronizar();
   },
   async criarConta(email, senha) {
-    const r = await this.req("/auth/v1/signup", { method: "POST", body: JSON.stringify({ email, password: senha }), semToken: true });
+    const volta = encodeURIComponent(location.protocol.startsWith("http") ? location.origin + location.pathname : "https://marckitto.github.io/quarteiroes/");
+    const r = await this.req("/auth/v1/signup?redirect_to=" + volta, { method: "POST", body: JSON.stringify({ email, password: senha, options: { email_redirect_to: decodeURIComponent(volta) } }), semToken: true });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error_description || j.msg || j.message || "falha ao criar conta");
     if (j.access_token) { this.guardarSessao(j, email); await this.sincronizar(); return "logado"; }
@@ -2533,6 +2548,10 @@ $("#impAnalisar").onclick = async () => {
 
 // ------------------------------------------------------------------ início
 $("#nCond").textContent = MOTOR.condominios().length;
+setTimeout(() => {
+  if (Sync._voltouDoEmail) { irAba("base"); msg("#lgMsg", "ok", "E-mail confirmado e conectado."); }
+  else if (Sync._erroLink) { irAba("base"); msg("#lgMsg", "aviso", "O link do e-mail não funcionou (" + esc(Sync._erroLink) + "). Se você já confirmou antes, é só entrar com e-mail e senha."); }
+}, 300);
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) navigator.serviceWorker.register("sw.js").catch(e => console.warn("sw", e));
 Sync.iniciar();
 renderBase();
