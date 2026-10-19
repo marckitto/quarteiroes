@@ -340,6 +340,15 @@ const Sync = {
     this._enviando = true;
     try {
       for (const t of Object.keys(TABELAS)) {
+        if (t === "correcoes" && !this.perfil.admin) {
+          const bloq = this.fila.filter(f => f.tipo === t && this.apr[t][f.k] && (this.apr[t][f.k].fonte || "manual") !== "manual");
+          if (bloq.length) {
+            const ks = new Set(bloq.map(f => f.k));
+            this.fila = this.fila.filter(f => !(f.tipo === t && ks.has(f.k)));
+            for (const k of ks) delete this.apr[t][k];
+            this._erro = `${bloq.length} itens de importação descartados: importação é restrita ao administrador.`;
+          }
+        }
         let itens = this.fila.filter(f => f.tipo === t);
         while (itens.length) {
           const lote = itens.slice(0, 500);
@@ -908,8 +917,11 @@ function renderAcesso() {
     $("#lgPapel").textContent = Sync.perfil ? (Sync.perfil.admin ? "administrador" : "usuário") : "aguardando liberação";
     if (Sync.estado === "naoliberado") msg("#lgMsg", "aviso", "Seu e-mail ainda não está na lista de usuários liberados. Peça ao administrador para liberar. Enquanto isso, suas correções ficam guardadas neste navegador.");
   }
-  const admin = logado && Sync.perfil && Sync.perfil.admin;
+  const admin = !!(logado && Sync.perfil && Sync.perfil.admin);
   $("#adminBox").classList.toggle("oculto", !admin);
+  $("#impAdmin").classList.toggle("oculto", !admin);
+  $("#impBloqueado").classList.toggle("oculto", admin);
+  $("#lblImpApr").classList.toggle("oculto", !admin);
   if (admin) carregarUsuarios();
 }
 async function carregarUsuarios() {
@@ -972,6 +984,7 @@ $("#cfgPadrao").onclick = () => { Sync.cfg = Object.assign({}, CFG_PADRAO); loca
 $("#btnExpApr").onclick = () => baixar(new Blob([JSON.stringify({ tipo: "aprendizado-quarteirao", exportado: new Date().toISOString().slice(0, 7), correcoes: Object.values(Sync.apr.correcoes), aliases: Object.values(Sync.apr.aliases), condominios: Object.values(Sync.apr.condominios) })], { type: "application/json" }), "aprendizado_quarteiroes.json");
 $("#arqApr").onchange = async ev => {
   const f = ev.target.files[0]; ev.target.value = ""; if (!f) return;
+  if (!(Sync.perfil && Sync.perfil.admin)) { alert("Importação restrita ao administrador."); ev.target.value = ""; return; }
   try {
     const j = JSON.parse(await f.text()); let n = 0;
     for (const c of j.correcoes || []) if (c.chave && c.numero) { Sync.registrar("correcoes", { chave: c.chave, numero: c.numero, rua: c.rua, quarteirao: c.quarteirao, fonte: c.fonte || "manual" }, true); n++; }
@@ -986,6 +999,7 @@ const MOTOR_CNEFE = MotorQuarteirao.criarMotor(DADOS);   // só CNEFE, sem apren
 const IMP = { leitor: null, cab: [], linhas: [], analise: null };
 $("#arqFonte").onchange = async ev => {
   const f = ev.target.files[0]; if (!f) return;
+  if (!(Sync.perfil && Sync.perfil.admin)) { alert("Importação restrita ao administrador."); ev.target.value = ""; return; }
   try {
     IMP.leitor = await lerPlanilha(f); IMP.nomeArq = f.name;
     $("#impAbaLinha").innerHTML = IMP.leitor.abas.length > 1 ? `<div class="campo" style="max-width:260px"><label>Aba</label><select id="impAba">${IMP.leitor.abas.map((a, i) => `<option value="${i}">${esc(a)}</option>`).join("")}</select></div>` : "";
