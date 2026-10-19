@@ -675,7 +675,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   --bg:#f6f7f9; --painel:#ffffff; --borda:#dfe3e8; --texto:#1c2026; --suave:#5d6670; --fraco:#8b949e;
   --realce:#1f5fbf; --realce-bg:#e8f0fc;
   --alta:#1e7a46; --alta-bg:#e3f4ea; --media:#8a6100; --media-bg:#fdf3d7;
-  --baixa:#b3401f; --baixa-bg:#fbe7e0; --nao:#59626c; --nao-bg:#eceff2;
+  --baixa:#b3401f; --baixa-bg:#fbe7e0; --nao:#59626c; --nao-bg:#eceff2; --out:#6b3fb3; --out-bg:#efe7fb;
   --mono:ui-monospace,"Cascadia Mono","Segoe UI Mono","Roboto Mono",Consolas,monospace;
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --raio:8px;
@@ -685,7 +685,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     --bg:#121417; --painel:#1a1d21; --borda:#2c3138; --texto:#e6e8eb; --suave:#a3abb5; --fraco:#7b838c;
     --realce:#6ea3ff; --realce-bg:#1b2840;
     --alta:#5fcf8d; --alta-bg:#16301f; --media:#e8b54a; --media-bg:#33290f;
-    --baixa:#f08a68; --baixa-bg:#3a1f17; --nao:#a3abb5; --nao-bg:#24282d;
+    --baixa:#f08a68; --baixa-bg:#3a1f17; --nao:#a3abb5; --nao-bg:#24282d; --out:#b99bf0; --out-bg:#2a2140;
   }
 }
 :root[data-theme="dark"]{
@@ -744,6 +744,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--realce);box-shadow:0 
 .tag.ALTA{background:var(--alta-bg);color:var(--alta)} .tag.MEDIA{background:var(--media-bg);color:var(--media)}
 .tag.BAIXA{background:var(--baixa-bg);color:var(--baixa)} .tag.NAO{background:var(--nao-bg);color:var(--nao)}
 .tag.cond{background:var(--realce-bg);color:var(--realce)}
+.tag.OUT{background:var(--out-bg);color:var(--out)} .c-OUT{color:var(--out)}
 .tabela-wrap{overflow:auto;border:1px solid var(--borda);border-radius:var(--raio);background:var(--painel);max-height:62vh}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{padding:6px 9px;border-bottom:1px solid var(--borda);text-align:left;vertical-align:top}
@@ -811,6 +812,7 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
       <div class="campo"><label>Complemento</label><select id="colComp"></select></div>
       <div class="campo"><label>Bairro</label><select id="colBairro"></select></div>
       <div class="campo"><label>CEP</label><select id="colCep"></select></div>
+      <div class="campo"><label>Município</label><select id="colMun"></select></div>
     </div>
     <div class="esp"></div>
     <div class="tabela-wrap" style="max-height:220px"><table id="previa"></table></div>
@@ -854,6 +856,7 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
           <option value="BAIXA">Só BAIXA</option>
           <option value="NAO">Só NÃO ENCONTRADO</option>
           <option value="cond">Só condomínios</option>
+          <option value="cidade">Só outra cidade</option>
           <option value="todos">Todas as linhas</option>
         </select>
       </div>
@@ -879,6 +882,11 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
           <div class="campo" id="revIntWrap" style="display:none"><label>Endereço interno do condomínio</label><input type="text" id="revInt" placeholder="ex.: QUADRA E"></div>
         </div>
         <div class="alts" id="revAlts"></div>
+        <div class="linha" style="margin-top:10px;align-items:flex-end">
+          <div class="campo" style="max-width:260px"><label>Ou é endereço de outra cidade:</label><input type="text" id="revCidade" list="listaCidades" placeholder="ex.: Sumaré"></div>
+          <button class="btn" id="revOutra">Marcar como outra cidade</button>
+        </div>
+        <datalist id="listaCidades"></datalist>
         <div id="revMsg" style="margin-top:8px"></div>
         <div class="linha" style="margin-top:12px">
           <button class="btn pri" id="revSalvar">Salvar e próximo</button>
@@ -1187,7 +1195,83 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
   }
 
   // ---------------------------------------------------------------- motor
-  const ORDEM = { "ALTA": 0, "MÉDIA": 1, "BAIXA": 2, "NÃO ENCONTRADO": 3 };
+  const ORDEM = { "ALTA": 0, "MÉDIA": 1, "BAIXA": 2, "NÃO ENCONTRADO": 3, "OUTRA CIDADE": 4 };
+
+  // ---------------------------------------------------------------- outras cidades
+  // Paulínia: 13140-001 a 13149-999 (Correios). Faixas da região: Correios via geografos.com.br / cepsbrasil.com.br.
+  const CEP_PAULINIA = [13140000, 13149999];
+  const FAIXAS_CEP = [
+    [13000000, 13139999, "Campinas"], [13150000, 13159999, "Cosmópolis"], [13160000, 13164999, "Artur Nogueira"],
+    [13165000, 13169999, "Engenheiro Coelho"], [13170000, 13182999, "Sumaré"], [13183000, 13189999, "Hortolândia"],
+    [13190000, 13199999, "Monte Mor"], [13200000, 13219999, "Jundiaí"], [13220000, 13229999, "Várzea Paulista"],
+    [13230000, 13239999, "Campo Limpo Paulista"], [13240000, 13249999, "Jarinu"], [13250000, 13259999, "Itatiba"],
+    [13260000, 13269999, "Morungaba"], [13270000, 13279999, "Valinhos"], [13280000, 13289999, "Vinhedo"],
+    [13330000, 13349999, "Indaiatuba"], [13370000, 13379999, "Rafard"], [13380000, 13389999, "Mombuca"],
+    [13390000, 13399999, "Rio das Pedras"], [13400000, 13439999, "Piracicaba"], [13440000, 13449999, "Saltinho"],
+    [13450000, 13459999, "Santa Bárbara d'Oeste"], [13460000, 13464999, "Nova Odessa"], [13465000, 13479999, "Americana"],
+    [13480000, 13489999, "Limeira"], [13490000, 13494999, "Cordeirópolis"], [13495000, 13499999, "Iracemápolis"],
+    [13500000, 13509999, "Rio Claro"], [13510000, 13514999, "Santa Gertrudes"], [13515000, 13519999, "Charqueada"],
+    [13520000, 13524999, "São Pedro"], [13525000, 13529999, "Águas de São Pedro"], [13530000, 13536999, "Itirapina"],
+    [13537000, 13539999, "Ipeúna"], [13540000, 13549999, "Corumbataí"], [13550000, 13559999, "Analândia"],
+    [13560000, 13579999, "São Carlos"], [13580000, 13589999, "Ribeirão Bonito"], [13590000, 13599999, "Dourado"],
+    [13600000, 13609999, "Araras"], [13800000, 13819999, "Mogi Mirim"], [13820000, 13824999, "Jaguariúna"],
+    [13825000, 13829999, "Holambra"], [13830000, 13834999, "Santo Antônio de Posse"], [13835000, 13839999, "Conchal"],
+    [13840000, 13856999, "Mogi Guaçu"], [13870000, 13879999, "São João da Boa Vista"], [13880000, 13889999, "Vargem Grande do Sul"],
+    [13890000, 13899999, "Águas da Prata"], [13900000, 13909999, "Amparo"], [13910000, 13919999, "Monte Alegre do Sul"],
+    [13920000, 13929999, "Pedreira"], [13930000, 13939999, "Serra Negra"], [13940000, 13949999, "Águas de Lindóia"],
+    [1000000, 5999999, "São Paulo"], [8000000, 8499999, "São Paulo"],
+  ];
+  const UF_CEP = [[1000000, 19999999, "SP"], [20000000, 28999999, "RJ"], [29000000, 29999999, "ES"], [30000000, 39999999, "MG"],
+    [40000000, 48999999, "BA"], [49000000, 49999999, "SE"], [50000000, 56999999, "PE"], [57000000, 57999999, "AL"],
+    [58000000, 58999999, "PB"], [59000000, 59999999, "RN"], [60000000, 63999999, "CE"], [64000000, 64999999, "PI"],
+    [65000000, 65999999, "MA"], [66000000, 68899999, "PA"], [68900000, 68999999, "AP"], [69000000, 69299999, "AM"],
+    [69300000, 69399999, "RR"], [69400000, 69899999, "AM"], [69900000, 69999999, "AC"], [70000000, 72799999, "DF"],
+    [72800000, 72999999, "GO"], [73000000, 73699999, "DF"], [73700000, 76799999, "GO"], [76800000, 76999999, "RO"],
+    [77000000, 77999999, "TO"], [78000000, 78899999, "MT"], [79000000, 79999999, "MS"], [80000000, 87999999, "PR"],
+    [88000000, 89999999, "SC"], [90000000, 99999999, "RS"]];
+  // nomes procurados no bairro/complemento/município (Saltinho fica de fora: também é bairro de Paulínia)
+  const CIDADES_TEXTO = [...new Set(FAIXAS_CEP.map(f => f[2]).concat(["Sorocaba", "Ribeirão Preto", "Bragança Paulista", "Atibaia",
+    "Louveira", "Itupeva", "Salto", "Capivari", "Elias Fausto", "Cabreúva", "Estiva Gerbi", "Aguaí", "Itapira", "Guarulhos",
+    "Santos", "Osasco", "Santo André", "São Bernardo do Campo"]))].filter(c => c !== "Saltinho");
+  function cidadeDoCep(cep, aprendidos) {
+    if (!/^\d{8}$/.test(cep)) return null;
+    const n = parseInt(cep, 10);
+    if (n >= CEP_PAULINIA[0] && n <= CEP_PAULINIA[1]) return null;
+    if (aprendidos && aprendidos.has(cep)) return { cidade: aprendidos.get(cep), base: `CEP ${cep.slice(0, 5)}-${cep.slice(5)} (aprendido)` };
+    const f = FAIXAS_CEP.find(([a, b]) => n >= a && n <= b);
+    if (f) return { cidade: f[2], base: `CEP ${cep.slice(0, 5)}-${cep.slice(5)}` };
+    if (aprendidos) for (const [c, cid] of aprendidos) if (c.slice(0, 5) === cep.slice(0, 5)) return { cidade: cid, base: `CEP ${cep.slice(0, 5)}-${cep.slice(5)} (faixa aprendida)` };
+    const uf = UF_CEP.find(([a, b]) => n >= a && n <= b);
+    return { cidade: uf ? `outro município (${uf[2]})` : "outro município", base: `CEP ${cep.slice(0, 5)}-${cep.slice(5)}`, semNome: true };
+  }
+  // bairros de Paulínia (CNEFE 2022 + nomes usuais): se o bairro é daqui, o CEP diferente é tratado como erro de digitação
+  const BAIRROS_PAULINIA = ["ALTO DE PINHEIROS", "BALNEARIO TROPICAL", "BELA VISTA", "BETEL", "BOA ESPERANCA", "BONFIM", "CASCATA",
+    "ALTO DA BOA VISTA", "CAMPOS DO CONDE", "RESERVA REAL", "RESIDENCIAL AURORA", "COOPERLOTES", "DONA EDITH CAMPOS FAVERO", "CAMPOS FAVERO",
+    "JARDIM AMERICA", "JARDIM DE ITAPOAN", "ITAPOAN", "ITAPUA", "JARDIM DOS CALEGARIS", "CALEGARIS", "JARDIM EUROPA", "JARDIM FLAMBOYANT",
+    "JARDIM FORTALEZA", "JARDIM HARMONIA", "JARDIM NOSSA SENHORA APARECIDA", "JARDIM OKINAWA", "JARDIM PARI", "JARDIM PLANALTO",
+    "JARDIM PRIMAVERA", "JARDIM SAO BENTO", "JARDIM VISTA ALEGRE", "JARDIM YPE", "JOAO ARANHA", "MORUMBI", "NOVA PAULINIA", "NOVA VENEZA",
+    "NOVO HORIZONTE", "PARQUE BOM RETIRO", "BOM RETIRO", "PARQUE BRASIL 500", "PARQUE BRASIL", "PARQUE DA BELEZA", "PARQUE DA FIGUEIRA",
+    "PARQUE DA REPRESA", "PARQUE IRMAOS PEDROSO", "POCO FUNDO", "RECANTO DO LAGO", "RECANTO DOS PASSAROS", "MARIETA DIAN",
+    "RESIDENCIAL PAZETTI", "RESIDENCIAL SAO JOSE", "SALTINHO", "SANTA CECILIA", "SANTA TEREZINHA", "SAO BENTO", "SAO DOMINGOS",
+    "SAO JOSE", "SAO LUIZ", "SOL NASCENTE", "VIDA NOVA", "VILA BRESSANI", "VILA JOSE PAULINO NOGUEIRA", "VILA MONTE ALEGRE",
+    "MONTE ALEGRE", "VILA PRESIDENTE MEDICI", "PRESIDENTE MEDICI", "JARDIM IPE", "OURO NEGRO", "JARDIM LEONOR", "PATROPI",
+    "VILLA LOBOS", "TEREZA VEDOVELLO", "JOSE PAULINO NOGUEIRA"];
+  const ABREV_BAIRRO = { JD: "JARDIM", JDIM: "JARDIM", PQ: "PARQUE", PRQ: "PARQUE", RES: "RESIDENCIAL", MTE: "MONTE", VL: "VILA",
+    STA: "SANTA", STO: "SANTO", COND: "CONDOMINIO", PRES: "PRESIDENTE", BAL: "BALNEARIO", NSA: "NOSSA", SRA: "SENHORA" };
+  function normBairro(b) { return textoBasico(b).split(" ").map(t => ABREV_BAIRRO[t] || ROMANOS[t] || t).filter(t => !STOP.has(t) && t !== "CONDOMINIO").map(fonetica).join(" "); }
+  const BAIRROS_IDX = BAIRROS_PAULINIA.map(normBairro);
+  function bairroDePaulinia(b) {
+    if (vazio(b)) return false;
+    const n = normBairro(b);
+    if (!n) return false;
+    return BAIRROS_IDX.some(k => k === n || ratio(k, n) >= 85 || (n.length >= 6 && (k.includes(n) || n.includes(k))));
+  }
+  const CIDADES_IDX = CIDADES_TEXTO.map(c => [textoBasico(c), c]).sort((a, b) => b[0].length - a[0].length);
+  function cidadeNoTexto(txt) {
+    const t = " " + textoBasico(txt) + " ";
+    for (const [k, nome] of CIDADES_IDX) if (t.includes(" " + k + " ")) return nome;
+    return null;
+  }
 
   function criarMotor(dados) {
     const ceps = dados.ceps;
@@ -1204,7 +1288,7 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
       else ruasBase.set(chave, { nome, regs });
     }
 
-    let ruas, chaves, indice, prop, fontes, aliases, condPorChave, condominios;
+    let ruas, chaves, indice, prop, fontes, aliases, cepsCidade, condPorChave, condominios;
     const cacheRua = new Map();
 
     function reindexar(apr) {
@@ -1219,8 +1303,9 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
         prop.get(c.chave).set(Number(c.numero), String(c.quarteirao));
         fontes.set(c.chave + "|" + Number(c.numero), c.fonte || "manual");
       }
-      aliases = new Map();
+      aliases = new Map(); cepsCidade = new Map();
       for (const a of (apr.aliases || [])) if (a.de && a.para) {
+        if (a.de.startsWith("CEP:")) { if (a.nome) cepsCidade.set(a.de.slice(4), a.nome); continue; }   // CEP de outra cidade aprendido
         aliases.set(a.de, a.para);
         if (!ruas.has(a.para)) ruas.set(a.para, { nome: a.nome || a.para, regs: [], nova: true });
       }
@@ -1420,6 +1505,37 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
         if (ar.sim < 90 && (res.conf === "ALTA" || res.conf === "MÉDIA")) { res = Object.assign({}, res, { conf: "BAIXA" }); obs.push("nome da rua bem diferente do encontrado — conferir"); }
         else if (res.conf === "ALTA" && ar.sim < 95) { res = Object.assign({}, res, { conf: "MÉDIA" }); obs.push("nome da rua corrigido por semelhança — conferir"); }
       }
+
+      // outra cidade? 1) coluna município  2) nome de cidade no bairro/complemento/fim do endereço  3) CEP
+      let municipio = "Paulínia", cidadeForte = false;
+      let ext = null;
+      const mun = vazio(linha.municipio) ? "" : String(linha.municipio).trim();
+      if (mun) {
+        const mt = textoBasico(mun).replace(/\s+SP$/, "");
+        if (/^\d{6,7}$/.test(mt)) { if (!mt.startsWith("353650")) ext = { cidade: `outro município (código IBGE ${mt})`, base: "coluna município", forte: true }; }
+        else if (mt && !mt.includes("PAULINIA")) ext = { cidade: cidadeNoTexto(mun) || mun.toUpperCase(), base: "coluna município", forte: true };
+      }
+      if (!ext) {
+        const fimRua = (String(linha.rua || "").split(/\s[-–\/]\s|,/).slice(1).join(" "));
+        for (const campo of [linha.bairro, complemento, fimRua]) {
+          if (vazio(campo)) continue;
+          if (textoBasico(campo).includes("PAULINIA")) break;
+          const c = cidadeNoTexto(campo);
+          if (c) { ext = { cidade: c, base: `"${String(campo).trim()}" no endereço`, forte: true }; break; }
+        }
+      }
+      if (!ext) {
+        const pc = cidadeDoCep(cep, cepsCidade);
+        if (pc) {
+          if (!ar.k && !bairroDePaulinia(linha.bairro)) ext = Object.assign(pc, { forte: false });
+          else obs.push(`CEP pertence a ${pc.cidade}${ar.k ? "" : ", mas o bairro é de Paulínia"} — conferir`);
+        }
+      }
+      if (ext && !res.met.startsWith("base aprendida")) {
+        municipio = ext.cidade; cidadeForte = !!ext.forte;
+        res = { q: null, met: `outra cidade (${ext.base})`, conf: "OUTRA CIDADE", obs: "" };
+        obs.unshift(`endereço de ${ext.cidade}`);
+      }
       return {
         quarteirao: res.q || "", zona: res.q ? (zonaPorQt.get(res.q) || "") : "",
         confianca: res.conf, metodo: res.met, obs: obs.filter(Boolean).join("; "),
@@ -1427,7 +1543,7 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
         similaridade: ar.k ? ar.sim : null, numero: sep.n, sufixo: sep.sufixo, ruaLimpa: textoBasico(sep.rua),
         complemento, lat: res.lat || null, lon: res.lon || null,
         condominio: cond ? cond.id : "", condominioNome: cond ? (cond.nome || `Condomínio ${cond.rua}, ${cond.numero}`) : "",
-        alternativas: res.alternativas || [],
+        alternativas: res.alternativas || [], municipio, cidadeForte,
       };
     }
 
@@ -1441,6 +1557,9 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
       condominios: () => condominios,
       zona: q => zonaPorQt.get(q) || "",
       existeQuarteirao: q => zonaPorQt.has(q),
+      cidades: () => [...new Set(CIDADES_TEXTO.concat([...cepsCidade.values()]))].sort((a, b) => a.localeCompare(b, "pt")),
+      bairroDePaulinia,
+      cepDePaulinia: cep => { const n = parseInt(cep, 10); return /^\d{8}$/.test(cep) && n >= CEP_PAULINIA[0] && n <= CEP_PAULINIA[1]; },
       estat: () => ({ ruas: ruas.size, ruasNovas: [...ruas.values()].filter(r => r.nova).length, condominios: condominios.length }),
       CFG,
     };
@@ -1467,7 +1586,7 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&a
 const fmt = n => Number(n || 0).toLocaleString("pt-BR");
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const vazio = v => v == null || String(v).trim() === "";
-const confCls = c => c === "ALTA" ? "ALTA" : c === "MÉDIA" ? "MEDIA" : c === "BAIXA" ? "BAIXA" : "NAO";
+const confCls = c => c === "ALTA" ? "ALTA" : c === "MÉDIA" ? "MEDIA" : c === "BAIXA" ? "BAIXA" : c === "OUTRA CIDADE" ? "OUT" : "NAO";
 function normQ(v) {
   let s = String(v == null ? "" : v).trim().toUpperCase().replace(/\s+/g, "");
   if (!s) return "";
@@ -1865,12 +1984,14 @@ function aplicarAprendizado(reprocessar) {
   if (abaAtual === "condominios") renderCondList();
 }
 function final(r) {
-  if (r.manual) return { q: r.manual.q, conf: "CORRIGIDO", met: "corrigido manualmente" };
-  return { q: r.res.quarteirao, conf: r.res.confianca, met: r.res.metodo };
+  if (r.manual && r.manual.outraCidade) return { q: "", conf: "OUTRA CIDADE", met: "outra cidade (marcado na revisão)", mun: r.manual.outraCidade };
+  if (r.manual) return { q: r.manual.q, conf: "CORRIGIDO", met: "corrigido manualmente", mun: "Paulínia" };
+  return { q: r.res.quarteirao, conf: r.res.confianca, met: r.res.metodo, mun: r.res.municipio || "Paulínia" };
 }
 function pendente(r) {
   if (r.manual) return false;
   const c = r.res.confianca;
+  if (c === "OUTRA CIDADE") return !r.res.cidadeForte;   // pelo CEP: confirmar
   return c === "BAIXA" || c === "NÃO ENCONTRADO" || /conferir|ambígua|portaria|sugere condomínio/.test(r.res.obs) || (r.res.metodo || "").includes("portaria");
 }
 
@@ -1899,6 +2020,7 @@ const PALAVRAS = {
   comp: ["COMPL"],
   bairro: ["BAIRRO", "LOCALIDADE"],
   cep: ["CEP"],
+  mun: ["MUNIC", "CIDADE", "MN RESI", "MUN RES"],
 };
 function detectar(cab, tipo) {
   const norm = cab.map(c => MotorQuarteirao.textoBasico(c));
@@ -1936,6 +2058,7 @@ async function carregarAba() {
   $("#colComp").innerHTML = opts(detectar(P.cab, "comp"));
   $("#colBairro").innerHTML = opts(detectar(P.cab, "bairro"));
   $("#colCep").innerHTML = opts(detectar(P.cab, "cep"));
+  $("#colMun").innerHTML = opts(detectar(P.cab, "mun"));
   const prev = P.linhas.slice(0, 6);
   $("#previa").innerHTML = `<tr>${P.cab.map(c => `<th>${esc(c)}</th>`).join("")}</tr>` + prev.map(l => `<tr>${P.cab.map((_, i) => `<td>${esc(l[i])}</td>`).join("")}</tr>`).join("");
 }
@@ -1945,7 +2068,7 @@ $("#btnNovo").onclick = () => {
   P.rows = []; $("#etapaResultado").classList.add("oculto"); $("#etapaArquivo").classList.remove("oculto"); atualizarContRev();
 };
 $("#btnProcessar").onclick = async () => {
-  const c = { rua: +$("#colRua").value, num: +$("#colNum").value, comp: +$("#colComp").value, bairro: +$("#colBairro").value, cep: +$("#colCep").value };
+  const c = { rua: +$("#colRua").value, num: +$("#colNum").value, comp: +$("#colComp").value, bairro: +$("#colBairro").value, cep: +$("#colCep").value, mun: +$("#colMun").value };
   if (c.rua < 0) { alert("Escolha a coluna da rua."); return; }
   P.cols = c;
   const g = (l, i) => i >= 0 ? l[i] : "";
@@ -1954,7 +2077,7 @@ $("#btnProcessar").onclick = async () => {
   const t0 = performance.now();
   for (let i = 0; i < P.linhas.length; i++) {
     const l = P.linhas[i];
-    const ent = { rua: g(l, c.rua), numero: g(l, c.num), complemento: g(l, c.comp), bairro: g(l, c.bairro), cep: g(l, c.cep) };
+    const ent = { rua: g(l, c.rua), numero: g(l, c.num), complemento: g(l, c.comp), bairro: g(l, c.bairro), cep: g(l, c.cep), municipio: g(l, c.mun) };
     P.rows.push({ i, orig: l, ent, res: MOTOR.processar(ent), manual: null });
     if (i % 200 === 199) { $("#prog").style.width = (100 * i / P.linhas.length) + "%"; await sleep(0); }
   }
@@ -1967,11 +2090,11 @@ window.addEventListener("beforeunload", e => { if (P.rows.length) { e.preventDef
 
 function renderResultado() {
   if (!P.rows.length) return;
-  const cont = { ALTA: 0, "MÉDIA": 0, BAIXA: 0, "NÃO ENCONTRADO": 0, CORRIGIDO: 0 };
+  const cont = { ALTA: 0, "MÉDIA": 0, BAIXA: 0, "NÃO ENCONTRADO": 0, "OUTRA CIDADE": 0, CORRIGIDO: 0 };
   for (const r of P.rows) cont[final(r).conf]++;
   const tot = P.rows.length;
   const chip = (k, rot, cls) => `<button class="chip" data-c="${k}" aria-pressed="${P.filtroConf === k}"><span class="v c-${cls}">${fmt(cont[k])}</span><span class="r">${rot} · <span class="mono">${(100 * cont[k] / tot).toFixed(0)}%</span></span></button>`;
-  $("#chips").innerHTML = chip("ALTA", "Alta", "ALTA") + chip("MÉDIA", "Média", "MEDIA") + chip("BAIXA", "Baixa", "BAIXA") + chip("NÃO ENCONTRADO", "Não encontrado", "NAO") + (cont.CORRIGIDO ? `<button class="chip" data-c="CORRIGIDO" aria-pressed="${P.filtroConf === "CORRIGIDO"}"><span class="v" style="color:var(--realce)">${fmt(cont.CORRIGIDO)}</span><span class="r">Corrigido</span></button>` : "");
+  $("#chips").innerHTML = chip("ALTA", "Alta", "ALTA") + chip("MÉDIA", "Média", "MEDIA") + chip("BAIXA", "Baixa", "BAIXA") + chip("NÃO ENCONTRADO", "Não encontrado", "NAO") + (cont["OUTRA CIDADE"] ? chip("OUTRA CIDADE", "Outra cidade", "OUT") : "") + (cont.CORRIGIDO ? `<button class="chip" data-c="CORRIGIDO" aria-pressed="${P.filtroConf === "CORRIGIDO"}"><span class="v" style="color:var(--realce)">${fmt(cont.CORRIGIDO)}</span><span class="r">Corrigido</span></button>` : "");
   $$("#chips .chip").forEach(b => b.onclick = () => { P.filtroConf = P.filtroConf === b.dataset.c ? null : b.dataset.c; renderResultado(); });
   const ft = MotorQuarteirao.textoBasico($("#filtroTexto").value);
   let lista = P.rows.filter(r => (!P.filtroConf || final(r).conf === P.filtroConf) && (!ft || MotorQuarteirao.textoBasico(r.ent.rua + " " + r.res.ruaEncontrada + " " + final(r).q).includes(ft)));
@@ -1989,18 +2112,18 @@ $("#filtroTexto").addEventListener("input", () => renderResultado());
 $("#btnRevisar").onclick = () => irAba("revisar");
 
 $("#btnExportar").onclick = async () => {
-  const extra = ["QUARTEIRAO", "ZONA", "CONFIANCA", "METODO", "RUA_ENCONTRADA", "NUMERO_USADO", "CONDOMINIO", "LATITUDE", "LONGITUDE", "OBS"];
+  const extra = ["QUARTEIRAO", "ZONA", "CONFIANCA", "METODO", "RUA_ENCONTRADA", "NUMERO_USADO", "CONDOMINIO", "LATITUDE", "LONGITUDE", "OBS", "MUNICIPIO_DO_ENDERECO"];
   const cab = P.cab.concat(extra);
-  const est = { ALTA: 2, "MÉDIA": 3, BAIXA: 4, "NÃO ENCONTRADO": 5, CORRIGIDO: 6 };
+  const est = { ALTA: 2, "MÉDIA": 3, BAIXA: 4, "NÃO ENCONTRADO": 5, CORRIGIDO: 6, "OUTRA CIDADE": 6 };
   const linhas = P.rows.map(r => {
     const f = final(r);
     return P.cab.map((_, i) => r.orig[i] == null ? "" : r.orig[i]).concat([
       f.q || "", MOTOR.zona(f.q), f.conf, f.met, r.manual ? r.manual.nome : r.res.ruaEncontrada,
       r.manual ? String(r.manual.numero || "") : (r.res.numero != null ? r.res.numero + (r.res.sufixo || "") : ""),
-      r.res.condominioNome || "", r.res.lat ? +r.res.lat.toFixed(6) : "", r.res.lon ? +r.res.lon.toFixed(6) : "", r.manual ? "" : r.res.obs]);
+      r.res.condominioNome || "", r.res.lat ? +r.res.lat.toFixed(6) : "", r.res.lon ? +r.res.lon.toFixed(6) : "", r.manual ? "" : r.res.obs, f.mun]);
   });
   const iConf = P.cab.length + 2;
-  const xml1 = folhaXml(cab, linhas, j => (i => i === iConf ? (est[linhas[j][iConf]] || 0) : 0), cab.map((c, i) => i >= P.cab.length ? [12, 8, 16, 30, 34, 10, 30, 12, 12, 60][i - P.cab.length] : Math.min(40, Math.max(10, String(c).length + 4))));
+  const xml1 = folhaXml(cab, linhas, j => (i => i === iConf ? (est[linhas[j][iConf]] || 0) : 0), cab.map((c, i) => i >= P.cab.length ? [12, 8, 16, 30, 34, 10, 30, 12, 12, 60, 22][i - P.cab.length] : Math.min(40, Math.max(10, String(c).length + 4))));
   const cont = {}; for (const r of P.rows) { const c = final(r).conf; cont[c] = (cont[c] || 0) + 1; }
   const res = Object.entries(cont).map(([k, v]) => [k, v, Math.round(1000 * v / P.rows.length) / 10]);
   const xml2 = folhaXml(["CONFIANCA", "QTD", "%"], res, null, [20, 10, 8]);
@@ -2095,6 +2218,7 @@ function filtroRev(r) {
   if (f === "BAIXA") return !r.manual && r.res.confianca === "BAIXA";
   if (f === "NAO") return !r.manual && r.res.confianca === "NÃO ENCONTRADO";
   if (f === "cond") return !!r.res.condominio || /sugere condomínio/.test(r.res.obs);
+  if (f === "cidade") return final(r).conf === "OUTRA CIDADE" || /CEP pertence/.test(r.res.obs);
   return true;
 }
 function montarFila(manterAtual) {
@@ -2139,7 +2263,8 @@ function renderRevisao() {
     P.cols.comp >= 0 ? [nomeCol(P.cols.comp), esc(r.ent.complemento)] : null,
     P.cols.bairro >= 0 ? [nomeCol(P.cols.bairro), esc(r.ent.bairro)] : null,
     P.cols.cep >= 0 ? [nomeCol(P.cols.cep), `<span class="mono">${esc(r.ent.cep)}</span>`] : null,
-    ["Sugestão", `<b class="mono">${esc(f.q || "—")}</b> ${f.q ? `<span class="nota">${esc(MOTOR.zona(f.q))}</span>` : ""}`],
+    P.cols.mun >= 0 ? [nomeCol(P.cols.mun), esc(r.ent.municipio)] : null,
+    f.conf === "OUTRA CIDADE" ? ["Município", `<b>${esc(f.mun)}</b>`] : ["Sugestão", `<b class="mono">${esc(f.q || "—")}</b> ${f.q ? `<span class="nota">${esc(MOTOR.zona(f.q))}</span>` : ""}`],
     ["Rua encontrada", esc(res.ruaEncontrada || "—") + (res.similaridade != null && res.similaridade < 100 ? ` <span class="nota mono">${res.similaridade}%</span>` : "")],
     ["Método", esc(f.met)],
   ].filter(Boolean).map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("");
@@ -2172,6 +2297,8 @@ function renderRevisao() {
   $("#revRuaNova").checked = !!(r.manual && r.manual.nova);
   $("#revNum").value = r.manual ? (r.manual.numero || "") : (res.numero != null ? res.numero : "");
   $("#revQ").value = f.q || "";
+  if (!$("#listaCidades").children.length) $("#listaCidades").innerHTML = MOTOR.cidades().map(c => `<option value="${esc(c)}">`).join("");
+  $("#revCidade").value = f.conf === "OUTRA CIDADE" && !/^outro município/.test(f.mun) ? f.mun : "";
   avisoQ = null; msg("#revMsg", "", "");
   renderSugestoes(ESC ? "" : $("#revRua").value, r);
   $("#revAlts").innerHTML = (res.alternativas || []).filter(q => !(cond && (cond.quarteiroes || []).includes(q))).map(q => `<button class="btn peq mono" data-q="${esc(q)}">${esc(q)}</button>`).join("");
@@ -2261,6 +2388,18 @@ function avancar() {
 }
 $("#revSalvar").onclick = () => salvarRevisao(false);
 $("#revOk").onclick = () => { if (!P.rows[REV.fila[REV.pos]].res.quarteirao) { msg("#revMsg", "erro", "Não há sugestão para confirmar."); return; } salvarRevisao(true); };
+$("#revOutra").onclick = () => {
+  const r = P.rows[REV.fila[REV.pos]];
+  const cidade = $("#revCidade").value.trim();
+  if (!cidade) { msg("#revMsg", "erro", "Digite o nome da cidade (ou escolha da lista)."); return; }
+  if (/paul[ií]nia/i.test(cidade)) { msg("#revMsg", "erro", "Para endereço de Paulínia, corrija a rua e o quarteirão acima."); return; }
+  r.manual = { q: "", outraCidade: cidade, chave: "", nome: "", numero: null };
+  // aprende o CEP (não é dado pessoal): próximos endereços com esse CEP já saem como outra cidade
+  const cep = String(r.ent.cep || "").trim().replace(/\.0+$/, "").replace(/\D/g, "");
+  if (cep.length === 8 && !MOTOR.cepDePaulinia(cep)) Sync.registrar("aliases", { de: "CEP:" + cep, para: "@CIDADE", nome: cidade });
+  aplicarAprendizado(true);
+  avancar();
+};
 $("#revCondNovo").onclick = () => {
   const r = P.rows[REV.fila[REV.pos]];
   const rua = ESC || (r.res.chaveRua ? { chave: r.res.chaveRua, nome: r.res.ruaEncontrada } : null);
@@ -2423,7 +2562,8 @@ function renderBase() {
     ["Ruas (CNEFE)", fmt(DADOS.ruas.length)],
     ["Ruas novas", fmt(e.ruasNovas)],
     ["Correções", fmt(corr)],
-    ["Apelidos de rua", fmt(Object.keys(Sync.apr.aliases).length)],
+    ["Apelidos de rua", fmt(Object.keys(Sync.apr.aliases).filter(k => !k.startsWith("CEP:")).length)],
+    ["CEPs de outras cidades", fmt(Object.keys(Sync.apr.aliases).filter(k => k.startsWith("CEP:")).length)],
     ["Condomínios", fmt(e.condominios)],
     ["Na fila p/ enviar", fmt(Sync.fila.length)],
     ["Quarteirões", fmt(new Set(DADOS.quarteiroes.map(q => q[0])).size)],

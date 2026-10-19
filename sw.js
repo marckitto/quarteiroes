@@ -1,5 +1,5 @@
 // Guarda a página para abrir sem internet. Sempre tenta a versão nova primeiro.
-const CACHE = "quarteiroes-v3";
+const CACHE = "quarteiroes-v4";
 const ARQS = ["./", "./index.html", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./favicon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARQS)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

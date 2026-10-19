@@ -14,7 +14,7 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&a
 const fmt = n => Number(n || 0).toLocaleString("pt-BR");
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const vazio = v => v == null || String(v).trim() === "";
-const confCls = c => c === "ALTA" ? "ALTA" : c === "MÉDIA" ? "MEDIA" : c === "BAIXA" ? "BAIXA" : "NAO";
+const confCls = c => c === "ALTA" ? "ALTA" : c === "MÉDIA" ? "MEDIA" : c === "BAIXA" ? "BAIXA" : c === "OUTRA CIDADE" ? "OUT" : "NAO";
 function normQ(v) {
   let s = String(v == null ? "" : v).trim().toUpperCase().replace(/\s+/g, "");
   if (!s) return "";
@@ -412,12 +412,14 @@ function aplicarAprendizado(reprocessar) {
   if (abaAtual === "condominios") renderCondList();
 }
 function final(r) {
-  if (r.manual) return { q: r.manual.q, conf: "CORRIGIDO", met: "corrigido manualmente" };
-  return { q: r.res.quarteirao, conf: r.res.confianca, met: r.res.metodo };
+  if (r.manual && r.manual.outraCidade) return { q: "", conf: "OUTRA CIDADE", met: "outra cidade (marcado na revisão)", mun: r.manual.outraCidade };
+  if (r.manual) return { q: r.manual.q, conf: "CORRIGIDO", met: "corrigido manualmente", mun: "Paulínia" };
+  return { q: r.res.quarteirao, conf: r.res.confianca, met: r.res.metodo, mun: r.res.municipio || "Paulínia" };
 }
 function pendente(r) {
   if (r.manual) return false;
   const c = r.res.confianca;
+  if (c === "OUTRA CIDADE") return !r.res.cidadeForte;   // pelo CEP: confirmar
   return c === "BAIXA" || c === "NÃO ENCONTRADO" || /conferir|ambígua|portaria|sugere condomínio/.test(r.res.obs) || (r.res.metodo || "").includes("portaria");
 }
 
@@ -446,6 +448,7 @@ const PALAVRAS = {
   comp: ["COMPL"],
   bairro: ["BAIRRO", "LOCALIDADE"],
   cep: ["CEP"],
+  mun: ["MUNIC", "CIDADE", "MN RESI", "MUN RES"],
 };
 function detectar(cab, tipo) {
   const norm = cab.map(c => MotorQuarteirao.textoBasico(c));
@@ -483,6 +486,7 @@ async function carregarAba() {
   $("#colComp").innerHTML = opts(detectar(P.cab, "comp"));
   $("#colBairro").innerHTML = opts(detectar(P.cab, "bairro"));
   $("#colCep").innerHTML = opts(detectar(P.cab, "cep"));
+  $("#colMun").innerHTML = opts(detectar(P.cab, "mun"));
   const prev = P.linhas.slice(0, 6);
   $("#previa").innerHTML = `<tr>${P.cab.map(c => `<th>${esc(c)}</th>`).join("")}</tr>` + prev.map(l => `<tr>${P.cab.map((_, i) => `<td>${esc(l[i])}</td>`).join("")}</tr>`).join("");
 }
@@ -492,7 +496,7 @@ $("#btnNovo").onclick = () => {
   P.rows = []; $("#etapaResultado").classList.add("oculto"); $("#etapaArquivo").classList.remove("oculto"); atualizarContRev();
 };
 $("#btnProcessar").onclick = async () => {
-  const c = { rua: +$("#colRua").value, num: +$("#colNum").value, comp: +$("#colComp").value, bairro: +$("#colBairro").value, cep: +$("#colCep").value };
+  const c = { rua: +$("#colRua").value, num: +$("#colNum").value, comp: +$("#colComp").value, bairro: +$("#colBairro").value, cep: +$("#colCep").value, mun: +$("#colMun").value };
   if (c.rua < 0) { alert("Escolha a coluna da rua."); return; }
   P.cols = c;
   const g = (l, i) => i >= 0 ? l[i] : "";
@@ -501,7 +505,7 @@ $("#btnProcessar").onclick = async () => {
   const t0 = performance.now();
   for (let i = 0; i < P.linhas.length; i++) {
     const l = P.linhas[i];
-    const ent = { rua: g(l, c.rua), numero: g(l, c.num), complemento: g(l, c.comp), bairro: g(l, c.bairro), cep: g(l, c.cep) };
+    const ent = { rua: g(l, c.rua), numero: g(l, c.num), complemento: g(l, c.comp), bairro: g(l, c.bairro), cep: g(l, c.cep), municipio: g(l, c.mun) };
     P.rows.push({ i, orig: l, ent, res: MOTOR.processar(ent), manual: null });
     if (i % 200 === 199) { $("#prog").style.width = (100 * i / P.linhas.length) + "%"; await sleep(0); }
   }
@@ -514,11 +518,11 @@ window.addEventListener("beforeunload", e => { if (P.rows.length) { e.preventDef
 
 function renderResultado() {
   if (!P.rows.length) return;
-  const cont = { ALTA: 0, "MÉDIA": 0, BAIXA: 0, "NÃO ENCONTRADO": 0, CORRIGIDO: 0 };
+  const cont = { ALTA: 0, "MÉDIA": 0, BAIXA: 0, "NÃO ENCONTRADO": 0, "OUTRA CIDADE": 0, CORRIGIDO: 0 };
   for (const r of P.rows) cont[final(r).conf]++;
   const tot = P.rows.length;
   const chip = (k, rot, cls) => `<button class="chip" data-c="${k}" aria-pressed="${P.filtroConf === k}"><span class="v c-${cls}">${fmt(cont[k])}</span><span class="r">${rot} · <span class="mono">${(100 * cont[k] / tot).toFixed(0)}%</span></span></button>`;
-  $("#chips").innerHTML = chip("ALTA", "Alta", "ALTA") + chip("MÉDIA", "Média", "MEDIA") + chip("BAIXA", "Baixa", "BAIXA") + chip("NÃO ENCONTRADO", "Não encontrado", "NAO") + (cont.CORRIGIDO ? `<button class="chip" data-c="CORRIGIDO" aria-pressed="${P.filtroConf === "CORRIGIDO"}"><span class="v" style="color:var(--realce)">${fmt(cont.CORRIGIDO)}</span><span class="r">Corrigido</span></button>` : "");
+  $("#chips").innerHTML = chip("ALTA", "Alta", "ALTA") + chip("MÉDIA", "Média", "MEDIA") + chip("BAIXA", "Baixa", "BAIXA") + chip("NÃO ENCONTRADO", "Não encontrado", "NAO") + (cont["OUTRA CIDADE"] ? chip("OUTRA CIDADE", "Outra cidade", "OUT") : "") + (cont.CORRIGIDO ? `<button class="chip" data-c="CORRIGIDO" aria-pressed="${P.filtroConf === "CORRIGIDO"}"><span class="v" style="color:var(--realce)">${fmt(cont.CORRIGIDO)}</span><span class="r">Corrigido</span></button>` : "");
   $$("#chips .chip").forEach(b => b.onclick = () => { P.filtroConf = P.filtroConf === b.dataset.c ? null : b.dataset.c; renderResultado(); });
   const ft = MotorQuarteirao.textoBasico($("#filtroTexto").value);
   let lista = P.rows.filter(r => (!P.filtroConf || final(r).conf === P.filtroConf) && (!ft || MotorQuarteirao.textoBasico(r.ent.rua + " " + r.res.ruaEncontrada + " " + final(r).q).includes(ft)));
@@ -536,18 +540,18 @@ $("#filtroTexto").addEventListener("input", () => renderResultado());
 $("#btnRevisar").onclick = () => irAba("revisar");
 
 $("#btnExportar").onclick = async () => {
-  const extra = ["QUARTEIRAO", "ZONA", "CONFIANCA", "METODO", "RUA_ENCONTRADA", "NUMERO_USADO", "CONDOMINIO", "LATITUDE", "LONGITUDE", "OBS"];
+  const extra = ["QUARTEIRAO", "ZONA", "CONFIANCA", "METODO", "RUA_ENCONTRADA", "NUMERO_USADO", "CONDOMINIO", "LATITUDE", "LONGITUDE", "OBS", "MUNICIPIO_DO_ENDERECO"];
   const cab = P.cab.concat(extra);
-  const est = { ALTA: 2, "MÉDIA": 3, BAIXA: 4, "NÃO ENCONTRADO": 5, CORRIGIDO: 6 };
+  const est = { ALTA: 2, "MÉDIA": 3, BAIXA: 4, "NÃO ENCONTRADO": 5, CORRIGIDO: 6, "OUTRA CIDADE": 6 };
   const linhas = P.rows.map(r => {
     const f = final(r);
     return P.cab.map((_, i) => r.orig[i] == null ? "" : r.orig[i]).concat([
       f.q || "", MOTOR.zona(f.q), f.conf, f.met, r.manual ? r.manual.nome : r.res.ruaEncontrada,
       r.manual ? String(r.manual.numero || "") : (r.res.numero != null ? r.res.numero + (r.res.sufixo || "") : ""),
-      r.res.condominioNome || "", r.res.lat ? +r.res.lat.toFixed(6) : "", r.res.lon ? +r.res.lon.toFixed(6) : "", r.manual ? "" : r.res.obs]);
+      r.res.condominioNome || "", r.res.lat ? +r.res.lat.toFixed(6) : "", r.res.lon ? +r.res.lon.toFixed(6) : "", r.manual ? "" : r.res.obs, f.mun]);
   });
   const iConf = P.cab.length + 2;
-  const xml1 = folhaXml(cab, linhas, j => (i => i === iConf ? (est[linhas[j][iConf]] || 0) : 0), cab.map((c, i) => i >= P.cab.length ? [12, 8, 16, 30, 34, 10, 30, 12, 12, 60][i - P.cab.length] : Math.min(40, Math.max(10, String(c).length + 4))));
+  const xml1 = folhaXml(cab, linhas, j => (i => i === iConf ? (est[linhas[j][iConf]] || 0) : 0), cab.map((c, i) => i >= P.cab.length ? [12, 8, 16, 30, 34, 10, 30, 12, 12, 60, 22][i - P.cab.length] : Math.min(40, Math.max(10, String(c).length + 4))));
   const cont = {}; for (const r of P.rows) { const c = final(r).conf; cont[c] = (cont[c] || 0) + 1; }
   const res = Object.entries(cont).map(([k, v]) => [k, v, Math.round(1000 * v / P.rows.length) / 10]);
   const xml2 = folhaXml(["CONFIANCA", "QTD", "%"], res, null, [20, 10, 8]);
@@ -642,6 +646,7 @@ function filtroRev(r) {
   if (f === "BAIXA") return !r.manual && r.res.confianca === "BAIXA";
   if (f === "NAO") return !r.manual && r.res.confianca === "NÃO ENCONTRADO";
   if (f === "cond") return !!r.res.condominio || /sugere condomínio/.test(r.res.obs);
+  if (f === "cidade") return final(r).conf === "OUTRA CIDADE" || /CEP pertence/.test(r.res.obs);
   return true;
 }
 function montarFila(manterAtual) {
@@ -686,7 +691,8 @@ function renderRevisao() {
     P.cols.comp >= 0 ? [nomeCol(P.cols.comp), esc(r.ent.complemento)] : null,
     P.cols.bairro >= 0 ? [nomeCol(P.cols.bairro), esc(r.ent.bairro)] : null,
     P.cols.cep >= 0 ? [nomeCol(P.cols.cep), `<span class="mono">${esc(r.ent.cep)}</span>`] : null,
-    ["Sugestão", `<b class="mono">${esc(f.q || "—")}</b> ${f.q ? `<span class="nota">${esc(MOTOR.zona(f.q))}</span>` : ""}`],
+    P.cols.mun >= 0 ? [nomeCol(P.cols.mun), esc(r.ent.municipio)] : null,
+    f.conf === "OUTRA CIDADE" ? ["Município", `<b>${esc(f.mun)}</b>`] : ["Sugestão", `<b class="mono">${esc(f.q || "—")}</b> ${f.q ? `<span class="nota">${esc(MOTOR.zona(f.q))}</span>` : ""}`],
     ["Rua encontrada", esc(res.ruaEncontrada || "—") + (res.similaridade != null && res.similaridade < 100 ? ` <span class="nota mono">${res.similaridade}%</span>` : "")],
     ["Método", esc(f.met)],
   ].filter(Boolean).map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("");
@@ -719,6 +725,8 @@ function renderRevisao() {
   $("#revRuaNova").checked = !!(r.manual && r.manual.nova);
   $("#revNum").value = r.manual ? (r.manual.numero || "") : (res.numero != null ? res.numero : "");
   $("#revQ").value = f.q || "";
+  if (!$("#listaCidades").children.length) $("#listaCidades").innerHTML = MOTOR.cidades().map(c => `<option value="${esc(c)}">`).join("");
+  $("#revCidade").value = f.conf === "OUTRA CIDADE" && !/^outro município/.test(f.mun) ? f.mun : "";
   avisoQ = null; msg("#revMsg", "", "");
   renderSugestoes(ESC ? "" : $("#revRua").value, r);
   $("#revAlts").innerHTML = (res.alternativas || []).filter(q => !(cond && (cond.quarteiroes || []).includes(q))).map(q => `<button class="btn peq mono" data-q="${esc(q)}">${esc(q)}</button>`).join("");
@@ -808,6 +816,18 @@ function avancar() {
 }
 $("#revSalvar").onclick = () => salvarRevisao(false);
 $("#revOk").onclick = () => { if (!P.rows[REV.fila[REV.pos]].res.quarteirao) { msg("#revMsg", "erro", "Não há sugestão para confirmar."); return; } salvarRevisao(true); };
+$("#revOutra").onclick = () => {
+  const r = P.rows[REV.fila[REV.pos]];
+  const cidade = $("#revCidade").value.trim();
+  if (!cidade) { msg("#revMsg", "erro", "Digite o nome da cidade (ou escolha da lista)."); return; }
+  if (/paul[ií]nia/i.test(cidade)) { msg("#revMsg", "erro", "Para endereço de Paulínia, corrija a rua e o quarteirão acima."); return; }
+  r.manual = { q: "", outraCidade: cidade, chave: "", nome: "", numero: null };
+  // aprende o CEP (não é dado pessoal): próximos endereços com esse CEP já saem como outra cidade
+  const cep = String(r.ent.cep || "").trim().replace(/\.0+$/, "").replace(/\D/g, "");
+  if (cep.length === 8 && !MOTOR.cepDePaulinia(cep)) Sync.registrar("aliases", { de: "CEP:" + cep, para: "@CIDADE", nome: cidade });
+  aplicarAprendizado(true);
+  avancar();
+};
 $("#revCondNovo").onclick = () => {
   const r = P.rows[REV.fila[REV.pos]];
   const rua = ESC || (r.res.chaveRua ? { chave: r.res.chaveRua, nome: r.res.ruaEncontrada } : null);
@@ -970,7 +990,8 @@ function renderBase() {
     ["Ruas (CNEFE)", fmt(DADOS.ruas.length)],
     ["Ruas novas", fmt(e.ruasNovas)],
     ["Correções", fmt(corr)],
-    ["Apelidos de rua", fmt(Object.keys(Sync.apr.aliases).length)],
+    ["Apelidos de rua", fmt(Object.keys(Sync.apr.aliases).filter(k => !k.startsWith("CEP:")).length)],
+    ["CEPs de outras cidades", fmt(Object.keys(Sync.apr.aliases).filter(k => k.startsWith("CEP:")).length)],
     ["Condomínios", fmt(e.condominios)],
     ["Na fila p/ enviar", fmt(Sync.fila.length)],
     ["Quarteirões", fmt(new Set(DADOS.quarteiroes.map(q => q[0])).size)],

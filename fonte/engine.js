@@ -180,7 +180,83 @@
   }
 
   // ---------------------------------------------------------------- motor
-  const ORDEM = { "ALTA": 0, "MÉDIA": 1, "BAIXA": 2, "NÃO ENCONTRADO": 3 };
+  const ORDEM = { "ALTA": 0, "MÉDIA": 1, "BAIXA": 2, "NÃO ENCONTRADO": 3, "OUTRA CIDADE": 4 };
+
+  // ---------------------------------------------------------------- outras cidades
+  // Paulínia: 13140-001 a 13149-999 (Correios). Faixas da região: Correios via geografos.com.br / cepsbrasil.com.br.
+  const CEP_PAULINIA = [13140000, 13149999];
+  const FAIXAS_CEP = [
+    [13000000, 13139999, "Campinas"], [13150000, 13159999, "Cosmópolis"], [13160000, 13164999, "Artur Nogueira"],
+    [13165000, 13169999, "Engenheiro Coelho"], [13170000, 13182999, "Sumaré"], [13183000, 13189999, "Hortolândia"],
+    [13190000, 13199999, "Monte Mor"], [13200000, 13219999, "Jundiaí"], [13220000, 13229999, "Várzea Paulista"],
+    [13230000, 13239999, "Campo Limpo Paulista"], [13240000, 13249999, "Jarinu"], [13250000, 13259999, "Itatiba"],
+    [13260000, 13269999, "Morungaba"], [13270000, 13279999, "Valinhos"], [13280000, 13289999, "Vinhedo"],
+    [13330000, 13349999, "Indaiatuba"], [13370000, 13379999, "Rafard"], [13380000, 13389999, "Mombuca"],
+    [13390000, 13399999, "Rio das Pedras"], [13400000, 13439999, "Piracicaba"], [13440000, 13449999, "Saltinho"],
+    [13450000, 13459999, "Santa Bárbara d'Oeste"], [13460000, 13464999, "Nova Odessa"], [13465000, 13479999, "Americana"],
+    [13480000, 13489999, "Limeira"], [13490000, 13494999, "Cordeirópolis"], [13495000, 13499999, "Iracemápolis"],
+    [13500000, 13509999, "Rio Claro"], [13510000, 13514999, "Santa Gertrudes"], [13515000, 13519999, "Charqueada"],
+    [13520000, 13524999, "São Pedro"], [13525000, 13529999, "Águas de São Pedro"], [13530000, 13536999, "Itirapina"],
+    [13537000, 13539999, "Ipeúna"], [13540000, 13549999, "Corumbataí"], [13550000, 13559999, "Analândia"],
+    [13560000, 13579999, "São Carlos"], [13580000, 13589999, "Ribeirão Bonito"], [13590000, 13599999, "Dourado"],
+    [13600000, 13609999, "Araras"], [13800000, 13819999, "Mogi Mirim"], [13820000, 13824999, "Jaguariúna"],
+    [13825000, 13829999, "Holambra"], [13830000, 13834999, "Santo Antônio de Posse"], [13835000, 13839999, "Conchal"],
+    [13840000, 13856999, "Mogi Guaçu"], [13870000, 13879999, "São João da Boa Vista"], [13880000, 13889999, "Vargem Grande do Sul"],
+    [13890000, 13899999, "Águas da Prata"], [13900000, 13909999, "Amparo"], [13910000, 13919999, "Monte Alegre do Sul"],
+    [13920000, 13929999, "Pedreira"], [13930000, 13939999, "Serra Negra"], [13940000, 13949999, "Águas de Lindóia"],
+    [1000000, 5999999, "São Paulo"], [8000000, 8499999, "São Paulo"],
+  ];
+  const UF_CEP = [[1000000, 19999999, "SP"], [20000000, 28999999, "RJ"], [29000000, 29999999, "ES"], [30000000, 39999999, "MG"],
+    [40000000, 48999999, "BA"], [49000000, 49999999, "SE"], [50000000, 56999999, "PE"], [57000000, 57999999, "AL"],
+    [58000000, 58999999, "PB"], [59000000, 59999999, "RN"], [60000000, 63999999, "CE"], [64000000, 64999999, "PI"],
+    [65000000, 65999999, "MA"], [66000000, 68899999, "PA"], [68900000, 68999999, "AP"], [69000000, 69299999, "AM"],
+    [69300000, 69399999, "RR"], [69400000, 69899999, "AM"], [69900000, 69999999, "AC"], [70000000, 72799999, "DF"],
+    [72800000, 72999999, "GO"], [73000000, 73699999, "DF"], [73700000, 76799999, "GO"], [76800000, 76999999, "RO"],
+    [77000000, 77999999, "TO"], [78000000, 78899999, "MT"], [79000000, 79999999, "MS"], [80000000, 87999999, "PR"],
+    [88000000, 89999999, "SC"], [90000000, 99999999, "RS"]];
+  // nomes procurados no bairro/complemento/município (Saltinho fica de fora: também é bairro de Paulínia)
+  const CIDADES_TEXTO = [...new Set(FAIXAS_CEP.map(f => f[2]).concat(["Sorocaba", "Ribeirão Preto", "Bragança Paulista", "Atibaia",
+    "Louveira", "Itupeva", "Salto", "Capivari", "Elias Fausto", "Cabreúva", "Estiva Gerbi", "Aguaí", "Itapira", "Guarulhos",
+    "Santos", "Osasco", "Santo André", "São Bernardo do Campo"]))].filter(c => c !== "Saltinho");
+  function cidadeDoCep(cep, aprendidos) {
+    if (!/^\d{8}$/.test(cep)) return null;
+    const n = parseInt(cep, 10);
+    if (n >= CEP_PAULINIA[0] && n <= CEP_PAULINIA[1]) return null;
+    if (aprendidos && aprendidos.has(cep)) return { cidade: aprendidos.get(cep), base: `CEP ${cep.slice(0, 5)}-${cep.slice(5)} (aprendido)` };
+    const f = FAIXAS_CEP.find(([a, b]) => n >= a && n <= b);
+    if (f) return { cidade: f[2], base: `CEP ${cep.slice(0, 5)}-${cep.slice(5)}` };
+    if (aprendidos) for (const [c, cid] of aprendidos) if (c.slice(0, 5) === cep.slice(0, 5)) return { cidade: cid, base: `CEP ${cep.slice(0, 5)}-${cep.slice(5)} (faixa aprendida)` };
+    const uf = UF_CEP.find(([a, b]) => n >= a && n <= b);
+    return { cidade: uf ? `outro município (${uf[2]})` : "outro município", base: `CEP ${cep.slice(0, 5)}-${cep.slice(5)}`, semNome: true };
+  }
+  // bairros de Paulínia (CNEFE 2022 + nomes usuais): se o bairro é daqui, o CEP diferente é tratado como erro de digitação
+  const BAIRROS_PAULINIA = ["ALTO DE PINHEIROS", "BALNEARIO TROPICAL", "BELA VISTA", "BETEL", "BOA ESPERANCA", "BONFIM", "CASCATA",
+    "ALTO DA BOA VISTA", "CAMPOS DO CONDE", "RESERVA REAL", "RESIDENCIAL AURORA", "COOPERLOTES", "DONA EDITH CAMPOS FAVERO", "CAMPOS FAVERO",
+    "JARDIM AMERICA", "JARDIM DE ITAPOAN", "ITAPOAN", "ITAPUA", "JARDIM DOS CALEGARIS", "CALEGARIS", "JARDIM EUROPA", "JARDIM FLAMBOYANT",
+    "JARDIM FORTALEZA", "JARDIM HARMONIA", "JARDIM NOSSA SENHORA APARECIDA", "JARDIM OKINAWA", "JARDIM PARI", "JARDIM PLANALTO",
+    "JARDIM PRIMAVERA", "JARDIM SAO BENTO", "JARDIM VISTA ALEGRE", "JARDIM YPE", "JOAO ARANHA", "MORUMBI", "NOVA PAULINIA", "NOVA VENEZA",
+    "NOVO HORIZONTE", "PARQUE BOM RETIRO", "BOM RETIRO", "PARQUE BRASIL 500", "PARQUE BRASIL", "PARQUE DA BELEZA", "PARQUE DA FIGUEIRA",
+    "PARQUE DA REPRESA", "PARQUE IRMAOS PEDROSO", "POCO FUNDO", "RECANTO DO LAGO", "RECANTO DOS PASSAROS", "MARIETA DIAN",
+    "RESIDENCIAL PAZETTI", "RESIDENCIAL SAO JOSE", "SALTINHO", "SANTA CECILIA", "SANTA TEREZINHA", "SAO BENTO", "SAO DOMINGOS",
+    "SAO JOSE", "SAO LUIZ", "SOL NASCENTE", "VIDA NOVA", "VILA BRESSANI", "VILA JOSE PAULINO NOGUEIRA", "VILA MONTE ALEGRE",
+    "MONTE ALEGRE", "VILA PRESIDENTE MEDICI", "PRESIDENTE MEDICI", "JARDIM IPE", "OURO NEGRO", "JARDIM LEONOR", "PATROPI",
+    "VILLA LOBOS", "TEREZA VEDOVELLO", "JOSE PAULINO NOGUEIRA"];
+  const ABREV_BAIRRO = { JD: "JARDIM", JDIM: "JARDIM", PQ: "PARQUE", PRQ: "PARQUE", RES: "RESIDENCIAL", MTE: "MONTE", VL: "VILA",
+    STA: "SANTA", STO: "SANTO", COND: "CONDOMINIO", PRES: "PRESIDENTE", BAL: "BALNEARIO", NSA: "NOSSA", SRA: "SENHORA" };
+  function normBairro(b) { return textoBasico(b).split(" ").map(t => ABREV_BAIRRO[t] || ROMANOS[t] || t).filter(t => !STOP.has(t) && t !== "CONDOMINIO").map(fonetica).join(" "); }
+  const BAIRROS_IDX = BAIRROS_PAULINIA.map(normBairro);
+  function bairroDePaulinia(b) {
+    if (vazio(b)) return false;
+    const n = normBairro(b);
+    if (!n) return false;
+    return BAIRROS_IDX.some(k => k === n || ratio(k, n) >= 85 || (n.length >= 6 && (k.includes(n) || n.includes(k))));
+  }
+  const CIDADES_IDX = CIDADES_TEXTO.map(c => [textoBasico(c), c]).sort((a, b) => b[0].length - a[0].length);
+  function cidadeNoTexto(txt) {
+    const t = " " + textoBasico(txt) + " ";
+    for (const [k, nome] of CIDADES_IDX) if (t.includes(" " + k + " ")) return nome;
+    return null;
+  }
 
   function criarMotor(dados) {
     const ceps = dados.ceps;
@@ -197,7 +273,7 @@
       else ruasBase.set(chave, { nome, regs });
     }
 
-    let ruas, chaves, indice, prop, fontes, aliases, condPorChave, condominios;
+    let ruas, chaves, indice, prop, fontes, aliases, cepsCidade, condPorChave, condominios;
     const cacheRua = new Map();
 
     function reindexar(apr) {
@@ -212,8 +288,9 @@
         prop.get(c.chave).set(Number(c.numero), String(c.quarteirao));
         fontes.set(c.chave + "|" + Number(c.numero), c.fonte || "manual");
       }
-      aliases = new Map();
+      aliases = new Map(); cepsCidade = new Map();
       for (const a of (apr.aliases || [])) if (a.de && a.para) {
+        if (a.de.startsWith("CEP:")) { if (a.nome) cepsCidade.set(a.de.slice(4), a.nome); continue; }   // CEP de outra cidade aprendido
         aliases.set(a.de, a.para);
         if (!ruas.has(a.para)) ruas.set(a.para, { nome: a.nome || a.para, regs: [], nova: true });
       }
@@ -413,6 +490,37 @@
         if (ar.sim < 90 && (res.conf === "ALTA" || res.conf === "MÉDIA")) { res = Object.assign({}, res, { conf: "BAIXA" }); obs.push("nome da rua bem diferente do encontrado — conferir"); }
         else if (res.conf === "ALTA" && ar.sim < 95) { res = Object.assign({}, res, { conf: "MÉDIA" }); obs.push("nome da rua corrigido por semelhança — conferir"); }
       }
+
+      // outra cidade? 1) coluna município  2) nome de cidade no bairro/complemento/fim do endereço  3) CEP
+      let municipio = "Paulínia", cidadeForte = false;
+      let ext = null;
+      const mun = vazio(linha.municipio) ? "" : String(linha.municipio).trim();
+      if (mun) {
+        const mt = textoBasico(mun).replace(/\s+SP$/, "");
+        if (/^\d{6,7}$/.test(mt)) { if (!mt.startsWith("353650")) ext = { cidade: `outro município (código IBGE ${mt})`, base: "coluna município", forte: true }; }
+        else if (mt && !mt.includes("PAULINIA")) ext = { cidade: cidadeNoTexto(mun) || mun.toUpperCase(), base: "coluna município", forte: true };
+      }
+      if (!ext) {
+        const fimRua = (String(linha.rua || "").split(/\s[-–\/]\s|,/).slice(1).join(" "));
+        for (const campo of [linha.bairro, complemento, fimRua]) {
+          if (vazio(campo)) continue;
+          if (textoBasico(campo).includes("PAULINIA")) break;
+          const c = cidadeNoTexto(campo);
+          if (c) { ext = { cidade: c, base: `"${String(campo).trim()}" no endereço`, forte: true }; break; }
+        }
+      }
+      if (!ext) {
+        const pc = cidadeDoCep(cep, cepsCidade);
+        if (pc) {
+          if (!ar.k && !bairroDePaulinia(linha.bairro)) ext = Object.assign(pc, { forte: false });
+          else obs.push(`CEP pertence a ${pc.cidade}${ar.k ? "" : ", mas o bairro é de Paulínia"} — conferir`);
+        }
+      }
+      if (ext && !res.met.startsWith("base aprendida")) {
+        municipio = ext.cidade; cidadeForte = !!ext.forte;
+        res = { q: null, met: `outra cidade (${ext.base})`, conf: "OUTRA CIDADE", obs: "" };
+        obs.unshift(`endereço de ${ext.cidade}`);
+      }
       return {
         quarteirao: res.q || "", zona: res.q ? (zonaPorQt.get(res.q) || "") : "",
         confianca: res.conf, metodo: res.met, obs: obs.filter(Boolean).join("; "),
@@ -420,7 +528,7 @@
         similaridade: ar.k ? ar.sim : null, numero: sep.n, sufixo: sep.sufixo, ruaLimpa: textoBasico(sep.rua),
         complemento, lat: res.lat || null, lon: res.lon || null,
         condominio: cond ? cond.id : "", condominioNome: cond ? (cond.nome || `Condomínio ${cond.rua}, ${cond.numero}`) : "",
-        alternativas: res.alternativas || [],
+        alternativas: res.alternativas || [], municipio, cidadeForte,
       };
     }
 
@@ -434,6 +542,9 @@
       condominios: () => condominios,
       zona: q => zonaPorQt.get(q) || "",
       existeQuarteirao: q => zonaPorQt.has(q),
+      cidades: () => [...new Set(CIDADES_TEXTO.concat([...cepsCidade.values()]))].sort((a, b) => a.localeCompare(b, "pt")),
+      bairroDePaulinia,
+      cepDePaulinia: cep => { const n = parseInt(cep, 10); return /^\d{8}$/.test(cep) && n >= CEP_PAULINIA[0] && n <= CEP_PAULINIA[1]; },
       estat: () => ({ ruas: ruas.size, ruasNovas: [...ruas.values()].filter(r => r.nova).length, condominios: condominios.length }),
       CFG,
     };

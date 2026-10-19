@@ -14,7 +14,7 @@
   --bg:#f6f7f9; --painel:#ffffff; --borda:#dfe3e8; --texto:#1c2026; --suave:#5d6670; --fraco:#8b949e;
   --realce:#1f5fbf; --realce-bg:#e8f0fc;
   --alta:#1e7a46; --alta-bg:#e3f4ea; --media:#8a6100; --media-bg:#fdf3d7;
-  --baixa:#b3401f; --baixa-bg:#fbe7e0; --nao:#59626c; --nao-bg:#eceff2;
+  --baixa:#b3401f; --baixa-bg:#fbe7e0; --nao:#59626c; --nao-bg:#eceff2; --out:#6b3fb3; --out-bg:#efe7fb;
   --mono:ui-monospace,"Cascadia Mono","Segoe UI Mono","Roboto Mono",Consolas,monospace;
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --raio:8px;
@@ -24,7 +24,7 @@
     --bg:#121417; --painel:#1a1d21; --borda:#2c3138; --texto:#e6e8eb; --suave:#a3abb5; --fraco:#7b838c;
     --realce:#6ea3ff; --realce-bg:#1b2840;
     --alta:#5fcf8d; --alta-bg:#16301f; --media:#e8b54a; --media-bg:#33290f;
-    --baixa:#f08a68; --baixa-bg:#3a1f17; --nao:#a3abb5; --nao-bg:#24282d;
+    --baixa:#f08a68; --baixa-bg:#3a1f17; --nao:#a3abb5; --nao-bg:#24282d; --out:#b99bf0; --out-bg:#2a2140;
   }
 }
 :root[data-theme="dark"]{
@@ -83,6 +83,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--realce);box-shadow:0 
 .tag.ALTA{background:var(--alta-bg);color:var(--alta)} .tag.MEDIA{background:var(--media-bg);color:var(--media)}
 .tag.BAIXA{background:var(--baixa-bg);color:var(--baixa)} .tag.NAO{background:var(--nao-bg);color:var(--nao)}
 .tag.cond{background:var(--realce-bg);color:var(--realce)}
+.tag.OUT{background:var(--out-bg);color:var(--out)} .c-OUT{color:var(--out)}
 .tabela-wrap{overflow:auto;border:1px solid var(--borda);border-radius:var(--raio);background:var(--painel);max-height:62vh}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{padding:6px 9px;border-bottom:1px solid var(--borda);text-align:left;vertical-align:top}
@@ -150,6 +151,7 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
       <div class="campo"><label>Complemento</label><select id="colComp"></select></div>
       <div class="campo"><label>Bairro</label><select id="colBairro"></select></div>
       <div class="campo"><label>CEP</label><select id="colCep"></select></div>
+      <div class="campo"><label>Município</label><select id="colMun"></select></div>
     </div>
     <div class="esp"></div>
     <div class="tabela-wrap" style="max-height:220px"><table id="previa"></table></div>
@@ -193,6 +195,7 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
           <option value="BAIXA">Só BAIXA</option>
           <option value="NAO">Só NÃO ENCONTRADO</option>
           <option value="cond">Só condomínios</option>
+          <option value="cidade">Só outra cidade</option>
           <option value="todos">Todas as linhas</option>
         </select>
       </div>
@@ -218,6 +221,11 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
           <div class="campo" id="revIntWrap" style="display:none"><label>Endereço interno do condomínio</label><input type="text" id="revInt" placeholder="ex.: QUADRA E"></div>
         </div>
         <div class="alts" id="revAlts"></div>
+        <div class="linha" style="margin-top:10px;align-items:flex-end">
+          <div class="campo" style="max-width:260px"><label>Ou é endereço de outra cidade:</label><input type="text" id="revCidade" list="listaCidades" placeholder="ex.: Sumaré"></div>
+          <button class="btn" id="revOutra">Marcar como outra cidade</button>
+        </div>
+        <datalist id="listaCidades"></datalist>
         <div id="revMsg" style="margin-top:8px"></div>
         <div class="linha" style="margin-top:12px">
           <button class="btn pri" id="revSalvar">Salvar e próximo</button>
