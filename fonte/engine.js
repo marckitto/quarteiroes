@@ -156,6 +156,11 @@
       numRua = m[1];
       if (m[2].trim()) { complemento = m[2].trim().replace(/^[,;\-\s]+/, ""); obs.push(`complemento separado: '${complemento}'`); }
       rua = rua.slice(0, m.index);
+    } else if ((m = rua.match(/(?:\s|(?<=[A-Z]))(?:N[º°O]?\.?\s*)?(\d{1,5})\s+((?:APTO|APT|AP|APARTAMENTO|CASA|CS|BLOCO|BL|QUADRA|QD|LOTE|LT|FUNDOS|FDS|FRENTE|SALA|SL|LOJA|LJ|TORRE|UNIDADE|UN|SOBRADO|COND|CONDOMINIO|RES)\b.*)$/))) {
+      // "AV JOSE PAULINO 1000 APTO 3": número antes do complemento
+      numRua = m[1];
+      complemento = m[2].trim(); obs.push(`complemento separado: '${complemento}'`);
+      rua = rua.slice(0, m.index);
     } else {
       m = rua.match(/(?:\s|(?<=[A-Z]))(?:N[º°O]?\.?\s*)?(\d{1,5})\s*$/);
       const antes = m ? textoBasico(rua.slice(0, m.index)).split(" ").filter(Boolean) : [];
