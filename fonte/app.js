@@ -1323,11 +1323,26 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
   }).catch(e => console.warn("sw", e));
   // versão nova publicada: avisa e deixa atualizar sem perder a planilha aberta por engano
   navigator.serviceWorker.addEventListener("controllerchange", () => { if (tinhaControle) $("#avisoVersao").classList.remove("oculto"); });
-  $("#btnAtualizar").onclick = () => {
-    if (P.rows.some(r => r.manual) && !confirm("Atualizar recarrega a página. As correções já foram salvas na base, mas a planilha aberta precisará ser carregada de novo. Continuar?")) return;
-    window.removeEventListener("beforeunload", () => {}); location.reload();
-  };
 }
+// Confere se há versão mais nova publicada (independe do cache do navegador)
+const VERSAO_APP = "__VERSAO__";
+async function checarVersao() {
+  if (!location.protocol.startsWith("http")) return;
+  try {
+    const t = await (await fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" })).text();
+    const m = t.match(/<meta name="versao" content="([^"]+)"/);
+    if (m && m[1] !== VERSAO_APP) $("#avisoVersao").classList.remove("oculto");
+  } catch (e) {}
+}
+setTimeout(checarVersao, 3000);
+setInterval(checarVersao, 15 * 60 * 1000);
+$("#btnAtualizar").onclick = async () => {
+  if (P.rows.some(r => r.manual) && !confirm("Atualizar recarrega a página. As correções já foram salvas na base, mas a planilha aberta precisará ser carregada de novo. Continuar?")) return;
+  try { for (const k of await caches.keys()) await caches.delete(k); } catch (e) {}
+  try { const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) await r.update(); } catch (e) {}
+  P.rows = [];
+  location.replace(location.pathname + "?atualizado=" + Date.now());
+};
 Sync.iniciar();
 renderBase();
 })();
