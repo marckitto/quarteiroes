@@ -177,25 +177,201 @@ dl.ficha dt{color:var(--suave)} dl.ficha dd{margin:0}
 .barra-acao{position:sticky;bottom:0;z-index:500;display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-top:14px;padding:12px 16px;background:var(--painel);border:1px solid var(--borda);border-radius:var(--raio);box-shadow:0 -4px 16px rgba(0,0,0,.06)}
 .barra-acao .btn.pri{padding:9px 18px}
 footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
+
+/* =========================================================
+   Redesenho 2026-11 · "planta cadastral"
+   ========================================================= */
+:root{
+  --bg:#EEF2F4; --painel:#FFFFFF; --borda:#DCE3E8; --texto:#15232D; --suave:#55656F; --fraco:#8796A0;
+  --realce:#0E6B7F; --realce-bg:#E1F0F3; --lat:#0F2530; --lat-t:#C9D7DE; --lat-f:#7F98A4;
+  --sombra:0 1px 2px rgba(15,37,48,.05),0 4px 14px rgba(15,37,48,.05);
+  --sans:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --disp:"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code",ui-monospace,"Segoe UI Mono","Roboto Mono",Consolas,monospace;
+  --raio:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1519; --painel:#152027; --borda:#25343D; --texto:#E4ECF0; --suave:#9DB0BA; --fraco:#6D828D;
+    --realce:#4FB3C8; --realce-bg:#14323A; --lat:#09141A; --lat-t:#B7C8D0; --lat-f:#6A8492;
+    --sombra:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1519; --painel:#152027; --borda:#25343D; --texto:#E4ECF0; --suave:#9DB0BA; --fraco:#6D828D;
+  --realce:#4FB3C8; --realce-bg:#14323A; --lat:#09141A; --lat-t:#B7C8D0; --lat-f:#6A8492; --out:#b99bf0; --out-bg:#2a2140;
+}
+html,body{font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--realce);outline-offset:2px}
+
+/* ---- casca: barra lateral + conteúdo */
+.shell{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+.lateral{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px;padding:22px 14px 16px;background:var(--lat);color:var(--lat-t);overflow:hidden;z-index:1000}
+#malhaFundo{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.55}
+.lateral>*:not(canvas){position:relative}
+.marca{display:flex;align-items:center;gap:11px;padding:0 8px}
+.logo{display:grid;grid-template-columns:repeat(2,13px);grid-template-rows:repeat(2,13px);gap:3px;flex:none}
+.logo i{display:block;border:1.6px solid #7FC6D4;border-radius:2px}
+.logo i.alvo{background:#7FC6D4}
+.marca-n{font:650 17px/1.1 var(--disp);color:#fff;letter-spacing:-.2px}
+.marca-s{font-size:12px;color:var(--lat-f)}
+.org{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--lat-f);padding:14px 8px 10px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:8px}
+.lateral nav{display:flex;flex-direction:column;gap:2px;margin:0}
+.lateral nav button{display:flex;align-items:center;gap:11px;width:100%;padding:9px 10px;border-radius:8px;color:var(--lat-t);font-weight:550;text-align:left;transition:background .15s,color .15s}
+.lateral nav button svg{width:18px;height:18px;flex:none;opacity:.8}
+.lateral nav button:hover{background:rgba(255,255,255,.06);color:#fff}
+.lateral nav button[aria-selected="true"]{background:rgba(127,198,212,.16);color:#fff;box-shadow:inset 3px 0 0 #7FC6D4}
+.lateral nav button[aria-selected="true"] svg{opacity:1;color:#7FC6D4}
+.lateral nav button .n{margin-left:auto;font:600 11.5px var(--mono);padding:1px 7px;border-radius:999px;background:rgba(255,255,255,.1);color:#fff}
+.lateral nav button .n:empty{display:none}
+.lat-rodape{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding:12px 6px 0;border-top:1px solid rgba(255,255,255,.08)}
+.lateral .pill{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:var(--lat-t);white-space:normal;align-items:flex-start;border-radius:8px;padding:6px 9px;line-height:1.35}
+.lateral .pill .dot{margin-top:4px;flex:none}
+.lat-nota{font-size:11.5px;color:var(--lat-f);padding:0 3px}
+.conteudo{min-width:0;display:flex;flex-direction:column}
+main{flex:1;width:100%;max-width:1440px;padding:28px 34px 40px;margin:0 auto}
+footer{padding:14px 34px 22px;text-align:left;color:var(--fraco)}
+
+/* ---- cabeçalho de página */
+.pg-cab{display:flex;align-items:flex-end;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;margin-bottom:20px}
+.pg-cab h1{font:650 25px/1.15 var(--disp);letter-spacing:-.4px;margin:0 0 5px}
+.pg-cab p{margin:0;color:var(--suave);max-width:78ch}
+.pg-cab>div:first-child{flex:1;min-width:260px}
+
+/* ---- componentes */
+.card{border-radius:var(--raio);padding:20px;box-shadow:var(--sombra)}
+.card h2{font:650 15.5px/1.3 var(--disp);margin:0 0 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h3{font-size:11.5px;letter-spacing:.6px;margin:18px 0 8px}
+.grid2{gap:20px}
+.btn{border-radius:8px;padding:8px 14px;transition:border-color .15s,background .15s,filter .15s}
+.btn:hover{border-color:var(--realce);color:var(--realce)}
+.btn.pri,.btn.pri:hover{color:#fff}
+.btn.peq{border-radius:6px}
+input[type=text],input[type=email],input[type=password],input[type=number],input[type=search],select,textarea{border:1px solid var(--borda);background:var(--painel);border-radius:8px;padding:8px 10px;outline:none;width:100%;transition:border-color .15s,box-shadow .15s}
+.campo label{font-size:12px}
+.tag{border-radius:5px;padding:2px 7px}
+.pill{border-radius:999px}
+.vazio{text-align:center;padding:48px 24px}
+.vazio-mini{padding:36px 16px;text-align:center;color:var(--suave);border:1px dashed var(--borda);border-radius:10px;font-size:13px}
+
+/* ---- início */
+.home{gap:20px}
+.home-hero h2{font:650 30px/1.15 var(--disp);letter-spacing:-.6px;max-width:20ch}
+.home-hero .lead{font-size:15px}
+.home .drop{border-radius:var(--raio);border-width:1.5px;min-height:240px;background:
+  linear-gradient(var(--painel),var(--painel)) padding-box;transition:border-color .15s,background .15s}
+.home .drop:hover{border-color:var(--realce)}
+.home .drop .ico{width:56px;height:56px;border-radius:14px}
+.passo{border-radius:10px;box-shadow:var(--sombra);padding:12px 14px}
+.consulta .res{border-radius:10px}
+.consulta .res .q{font-size:30px}
+.mini-mapa{border-radius:10px;height:250px}
+.faixa-base{gap:12px;margin-top:20px}
+.faixa-base .k,.tiles .k{padding:14px 16px;border:1px solid var(--borda);border-radius:10px;background:var(--painel);box-shadow:var(--sombra)}
+.faixa-base .k .v,.tiles .k .v{font:600 21px/1.2 var(--mono);letter-spacing:-.3px}
+.faixa-base .k .r,.tiles .k .r{font-size:12px;color:var(--suave);margin-top:2px}
+.privacidade{border-radius:10px;margin-top:20px}
+
+/* ---- colunas */
+.arq-cab{padding:14px 20px;margin-bottom:20px}
+.mapear{gap:20px}
+.barra-acao{border-radius:var(--raio);padding:12px 18px;box-shadow:0 -2px 18px rgba(15,37,48,.08)}
+
+/* ---- resultado */
+.resumo-card{padding:18px 20px;margin-bottom:16px}
+.propbar{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--borda);margin-bottom:16px;gap:2px}
+.propbar i{display:block;height:100%;min-width:3px}
+.chips{gap:10px}
+.chip{border-radius:10px;padding:10px 16px;min-width:140px;transition:border-color .15s,background .15s}
+.chip:hover{border-color:var(--realce)}
+.chip .v{font-size:22px}
+.chip[aria-pressed="true"]{outline:0;border-color:var(--realce);background:var(--realce-bg);box-shadow:inset 0 0 0 1px var(--realce)}
+.tabela-card{padding:0;overflow:hidden}
+.tabela-barra{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--borda)}
+.tabela-barra input{max-width:320px}
+.tabela-card .tabela-wrap{border:0;border-radius:0;max-height:64vh}
+.tabela-wrap{border-radius:10px}
+th{background:var(--bg);font-size:11.5px;letter-spacing:.3px;text-transform:uppercase;padding:9px 12px}
+td{padding:8px 12px}
+tbody tr:nth-child(even) td,table tr:nth-child(even) td{background:color-mix(in srgb,var(--bg) 45%,var(--painel))}
+tr.click:hover td{background:var(--realce-bg)!important}
+
+/* ---- revisão e mapas */
+.mapa,.gm-frame,.gm-vazio{border-radius:10px}
+.abas-mapa{border-radius:8px}
+.abas-mapa button{padding:6px 12px}
+.sug{border-radius:8px}
+
+/* ---- base e acesso */
+.base-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+.base-grid .span2{grid-column:1/-1}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:0}
+details.cfg{padding:0}
+details.cfg summary{cursor:pointer;padding:16px 20px;font:650 15px var(--disp);list-style:none;display:flex;align-items:center;gap:8px}
+details.cfg summary::before{content:"";width:7px;height:7px;border-right:2px solid var(--suave);border-bottom:2px solid var(--suave);transform:rotate(-45deg);transition:transform .15s}
+details.cfg[open] summary::before{transform:rotate(45deg)}
+details.cfg>div{padding:0 20px 20px}
+@media (max-width:1100px){.base-grid{grid-template-columns:1fr}}
+
+/* ---- telas estreitas: barra lateral vira barra superior */
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr}
+  .lateral{position:sticky;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:10px 14px}
+  #malhaFundo,.org,.lat-nota{display:none}
+  .marca{padding:0}
+  .lateral nav{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;width:100%;order:3;gap:4px;scrollbar-width:none}
+  .lateral nav button{width:auto;flex:none;padding:7px 10px;white-space:nowrap}
+  .lateral nav button[aria-selected="true"]{box-shadow:inset 0 -2px 0 #7FC6D4}
+  .lat-rodape{margin:0 0 0 auto;padding:0;border:0;max-width:55%}
+  .lateral .pill{font-size:11px;padding:4px 8px}
+  main{padding:20px 16px 32px}
+  footer{padding:12px 16px 20px}
+  .pg-cab h1{font-size:22px}
+  .home-hero h2{font-size:24px}
+}
+@media (max-width:560px){
+  .lateral nav button span:not(.n){display:inline}
+  .lat-rodape{max-width:100%;order:2;margin:0}
+  .chip{min-width:calc(50% - 5px);flex:1}
+  .pg-cab .linha{width:100%}
+  .pg-cab .linha .btn{flex:1}
+}
+
+.home-hero h2{margin-bottom:10px}
+a.btn{color:var(--texto);text-decoration:none;display:inline-flex;align-items:center}
+.tiles{grid-template-columns:repeat(auto-fill,minmax(118px,1fr))}
+.cond-filtros{margin-bottom:12px;flex-wrap:nowrap}
+.cond-filtros input{flex:1.3;min-width:0}
+.cond-filtros select{flex:1;min-width:0;width:auto}
+#aba-condominios .grid2{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+@media (max-width:1100px){#aba-condominios .grid2{grid-template-columns:1fr}}
+#tabCond td,#tabCond th{padding:8px 10px}
+#acaoResumo:empty+*{margin-left:auto}
+#revPos{white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<header>
-  <div>
-    <h1>Quarteirão por Endereço</h1>
-    <div class="sub">Vigilância em Saúde · Paulínia</div>
+<div class="shell">
+<aside class="lateral">
+  <canvas id="malhaFundo" aria-hidden="true"></canvas>
+  <div class="marca">
+    <span class="logo" aria-hidden="true"><i></i><i></i><i></i><i class="alvo"></i></span>
+    <div><div class="marca-n">Quarteirão</div><div class="marca-s">por endereço</div></div>
   </div>
-  <nav role="tablist">
-    <button data-aba="processar" aria-selected="true">Processar</button>
-    <button data-aba="revisar">Revisar <span class="n" id="nRevisar"></span></button>
-    <button data-aba="condominios">Condomínios <span class="n" id="nCond"></span></button>
-    <button data-aba="base">Base e acesso</button>
+  <div class="org">Vigilância em Saúde · Paulínia</div>
+  <nav role="tablist" aria-label="Seções">
+    <button data-aba="processar" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="m9 14 2 2 4-4"/></svg><span>Processar</span></button>
+    <button data-aba="revisar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/><path d="M8.5 11h5"/></svg><span>Revisar</span><span class="n" id="nRevisar"></span></button>
+    <button data-aba="condominios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V8l7-4 7 4v13"/><path d="M9 21v-5h6v5"/><path d="M9 11h.01M15 11h.01"/></svg><span>Condomínios</span><span class="n" id="nCond"></span></button>
+    <button data-aba="base"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5.5" rx="7" ry="2.5"/><path d="M5 5.5v6c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-6"/><path d="M5 11.5v6c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-6"/></svg><span>Base e acesso</span></button>
   </nav>
-  <div class="status">
-    <span class="pill" title="A lista carregada fica só neste navegador"><span class="dot ok"></span>Lista local</span>
+  <div class="lat-rodape">
     <span class="pill" id="pillSync" title="Sincronização da base compartilhada"><span class="dot"></span><span>Offline</span></span>
+    <div class="lat-nota">A planilha carregada fica só neste computador.</div>
   </div>
-</header>
+</aside>
+<div class="conteudo">
 
 <main>
 <!-- ============================================================ PROCESSAR -->
@@ -277,26 +453,33 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
   </div>
 
   <div id="etapaResultado" class="oculto">
-    <div class="linha" style="justify-content:space-between;margin-bottom:12px">
-      <div class="chips" id="chips"></div>
+    <div class="pg-cab">
+      <div><h1>Resultado</h1><p id="resArq"></p></div>
       <div class="linha">
-        <button class="btn pri" id="btnRevisar">Revisar pendências</button>
-        <button class="btn" id="btnExportar">Baixar planilha com quarteirões</button>
         <button class="btn" id="btnNovo">Nova planilha</button>
+        <button class="btn" id="btnExportar">Baixar planilha com quarteirões</button>
+        <button class="btn pri" id="btnRevisar">Revisar pendências</button>
       </div>
     </div>
-    <div class="linha" style="margin-bottom:8px">
-      <input type="text" id="filtroTexto" placeholder="Filtrar por rua, quarteirão…" style="max-width:320px">
-      <span class="nota" id="contFiltro"></span>
+    <div class="card resumo-card">
+      <div class="propbar" id="propBar" aria-hidden="true"></div>
+      <div class="chips" id="chips"></div>
     </div>
-    <div class="tabela-wrap"><table id="tabRes"></table></div>
-    <p class="nota">Clique numa linha para revisar ou corrigir aquele endereço.</p>
+    <div class="card tabela-card">
+      <div class="tabela-barra">
+        <input type="search" id="filtroTexto" placeholder="Filtrar por rua ou quarteirão">
+        <span class="nota" id="contFiltro"></span>
+        <span class="nota" style="margin-left:auto">Clique numa linha para revisar aquele endereço.</span>
+      </div>
+      <div class="tabela-wrap"><table id="tabRes"></table></div>
+    </div>
   </div>
 </section>
 
 <!-- ============================================================ REVISAR -->
 <section class="aba" id="aba-revisar">
-  <div id="revVazio" class="card"><h2>Nada para revisar</h2><p class="nota">Processe uma planilha na aba Processar. As linhas com confiança BAIXA, NÃO ENCONTRADO, endereços de portaria de condomínio e ruas corrigidas por semelhança aparecem aqui.</p></div>
+  <div class="pg-cab"><div><h1>Revisão</h1><p>Só os endereços que precisam de olho humano. Cada correção vira aprendizado para todos.</p></div></div>
+  <div id="revVazio" class="card vazio"><h2>Nada para revisar</h2><p class="nota">Processe uma planilha na aba Processar. As linhas com confiança BAIXA, NÃO ENCONTRADO, endereços de portaria de condomínio e ruas corrigidas por semelhança aparecem aqui.</p></div>
   <div id="revCorpo" class="oculto">
     <div class="linha" style="justify-content:space-between;margin-bottom:12px">
       <div class="navrev">
@@ -358,7 +541,7 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
             </div>
           </div>
           <div class="linha">
-            <input type="text" id="revBuscaQ" class="mono" placeholder="ir ao quarteirão" style="width:140px">
+            <input type="text" id="revBuscaQ" class="mono" placeholder="ir ao quarteirão" style="width:170px">
             <label class="nota" style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="chkFundo" checked> fundo OSM</label>
           </div>
         </div>
@@ -386,21 +569,20 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
 
 <!-- ============================================================ CONDOMÍNIOS -->
 <section class="aba" id="aba-condominios">
+  <div class="pg-cab">
+    <div><h1>Condomínios e prédios</h1><p>Pré-carregados do CNEFE (8 ou mais unidades no mesmo número). <b>Portaria resolve</b>: o condomínio inteiro fica num quarteirão. <b>Precisa endereço interno</b>: ocupa vários quarteirões, então a portaria não basta.</p></div>
+    <button class="btn pri" id="condNovo">Novo condomínio</button>
+  </div>
   <div class="grid2">
     <div class="card">
-      <div class="linha" style="justify-content:space-between">
-        <h2 style="margin:0">Condomínios e prédios</h2>
-        <button class="btn" id="condNovo">Novo condomínio</button>
-      </div>
-      <p class="nota">Pré-carregados do CNEFE (8+ unidades no mesmo número). <b>Portaria resolve</b>: todo o condomínio fica num quarteirão. <b>Precisa endereço interno</b>: ocupa vários quarteirões, então o endereço da portaria não basta.</p>
-      <div class="linha" style="margin-bottom:8px">
-        <input type="text" id="condFiltro" placeholder="Filtrar…" style="max-width:240px">
-        <select id="condSit" style="width:auto"><option value="">Todas as situações</option><option value="interno">Precisa endereço interno</option><option value="portaria">Portaria resolve</option></select>
+      <div class="linha cond-filtros">
+        <input type="search" id="condFiltro" placeholder="Filtrar por rua ou bairro">
+        <select id="condSit"><option value="">Todas as situações</option><option value="interno">Precisa endereço interno</option><option value="portaria">Portaria resolve</option></select>
       </div>
       <div class="tabela-wrap" style="max-height:60vh"><table id="tabCond"></table></div>
     </div>
     <div class="card">
-      <div id="condEditor"><p class="nota">Escolha um condomínio na lista para ver no mapa e editar.</p></div>
+      <div id="condEditor"><div class="vazio-mini">Escolha um condomínio na lista para ver no mapa e editar.</div></div>
       <div class="esp"></div>
       <div class="mapa" id="mapaCond" style="height:420px"></div>
     </div>
@@ -409,7 +591,12 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
 
 <!-- ============================================================ BASE E ACESSO -->
 <section class="aba" id="aba-base">
-  <div class="grid2">
+  <div class="pg-cab"><div><h1>Base e acesso</h1><p>O que o sistema já sabe, quem pode contribuir e de onde vêm os dados.</p></div></div>
+  <div class="base-grid">
+    <div class="card">
+      <h2>Base de conhecimento</h2>
+      <div class="tiles" id="baseEstat"></div>
+    </div>
     <div class="card">
       <h2>Acesso à base compartilhada</h2>
       <div id="loginBox">
@@ -441,13 +628,11 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
         <div class="tabela-wrap" style="margin-top:8px;max-height:260px"><table id="tabUsu"></table></div>
       </div>
     </div>
-
-    <div class="card">
-      <h2>Base de conhecimento</h2>
-      <dl class="ficha" id="baseEstat"></dl>
-      <div id="impBloqueado" class="nota" style="margin-top:14px"><b>Importar fontes de endereços</b> é restrito ao administrador, para garantir a qualidade da base. Correções feitas na tela Revisar continuam valendo para todos.</div>
+    <div class="card span2">
+      <h2>Importar fonte de endereços <span class="tag cond">administrador</span></h2>
+      <div id="impBloqueado" class="nota"><b>Importar fontes de endereços</b> é restrito ao administrador, para garantir a qualidade da base. Correções feitas na tela Revisar continuam valendo para todos.</div>
       <div id="impAdmin" class="oculto">
-      <h3>Importar fonte de endereços <span class="tag cond">administrador</span></h3>
+      
       <p class="nota">Qualquer planilha que já tenha rua, número e quarteirão: histórico de casos, base da divisão, cadastro de imóveis, visitas… A planilha é analisada aqui no navegador; para a base vão só rua, número e quarteirão.</p>
       <div class="linha"><input type="file" id="arqFonte" accept=".xlsx,.csv"></div>
       <div id="impCorpo" class="oculto" style="margin-top:10px">
@@ -463,22 +648,33 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
         <div id="impRel" style="margin-top:12px"></div>
       </div>
       </div>
-      <h3>Cópia de segurança</h3>
+    </div>
+    <div class="card">
+      <h2>Cópia de segurança</h2>
+      <p class="nota" style="margin-top:-4px">Baixe o aprendizado (correções, apelidos de rua e condomínios) em um arquivo.</p>
       <div class="linha">
         <button class="btn" id="btnExpApr">Exportar aprendizado (.json)</button>
         <label class="btn oculto" id="lblImpApr">Importar aprendizado<input type="file" id="arqApr" accept=".json" hidden></label>
       </div>
-      <h3>Privacidade</h3>
-      <p class="nota">A planilha de casos é lida e processada só neste navegador, e não fica salva depois que a página é fechada. Para a base compartilhada vão apenas <b>rua, número e quarteirão</b> (e os dados dos condomínios), com o usuário e o mês da correção, sem nome, agravo nem data de notificação.</p>
-      <h3>Configuração do servidor</h3>
+    </div>
+    <div class="card">
+      <h2>Privacidade</h2>
+      <p class="nota">A planilha é lida e processada só neste navegador e não fica salva depois que a página é fechada. Para a base compartilhada vão apenas <b>rua, número e quarteirão</b> (e os dados dos condomínios), com o usuário e o mês da correção — sem nome, agravo nem data de notificação.</p>
+    </div>
+    <details class="card span2 cfg">
+      <summary>Configuração do servidor</summary>
+      <div style="margin-top:10px">
       <div class="campo"><label>URL do Supabase</label><input type="text" id="cfgUrl" class="mono"></div>
       <div class="campo" style="margin-top:6px"><label>Chave pública (publishable)</label><input type="text" id="cfgKey" class="mono"></div>
       <div class="linha" style="margin-top:8px"><button class="btn peq" id="cfgSalvar">Salvar configuração</button><button class="btn peq" id="cfgPadrao">Restaurar padrão</button></div>
-    </div>
+      </div>
+    </details>
   </div>
 </section>
 </main>
 <footer>Base: <span id="rodape"></span> · versão do sistema <span class="mono">__VERSAO__</span></footer>
+</div>
+</div>
 <div id="avisoVersao" class="oculto" style="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:2000;background:var(--texto);color:var(--painel);padding:10px 14px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:12px;align-items:center;font-size:13px">Nova versão do sistema disponível.<button class="btn peq" id="btnAtualizar">Atualizar agora</button></div>
 
 <script id="dados" type="application/json">__DADOS__</script>

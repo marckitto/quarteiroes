@@ -588,6 +588,9 @@ function renderResultado() {
   const tot = P.rows.length;
   const chip = (k, rot, cls) => `<button class="chip" data-c="${k}" aria-pressed="${P.filtroConf === k}"><span class="v c-${cls}">${fmt(cont[k])}</span><span class="r">${rot} · <span class="mono">${(100 * cont[k] / tot).toFixed(0)}%</span></span></button>`;
   $("#chips").innerHTML = chip("ALTA", "Alta", "ALTA") + chip("MÉDIA", "Média", "MEDIA") + chip("BAIXA", "Baixa", "BAIXA") + chip("NÃO ENCONTRADO", "Não encontrado", "NAO") + (cont["OUTRA CIDADE"] ? chip("OUTRA CIDADE", "Outra cidade", "OUT") : "") + (cont.CORRIGIDO ? `<button class="chip" data-c="CORRIGIDO" aria-pressed="${P.filtroConf === "CORRIGIDO"}"><span class="v" style="color:var(--realce)">${fmt(cont.CORRIGIDO)}</span><span class="r">Corrigido</span></button>` : "");
+  const corBar = { ALTA: "var(--alta)", "MÉDIA": "var(--media)", BAIXA: "var(--baixa)", "NÃO ENCONTRADO": "var(--nao)", "OUTRA CIDADE": "var(--out)", CORRIGIDO: "var(--realce)" };
+  $("#propBar").innerHTML = ["CORRIGIDO", "ALTA", "MÉDIA", "BAIXA", "OUTRA CIDADE", "NÃO ENCONTRADO"].filter(k => cont[k]).map(k => `<i style="flex:${cont[k]};background:${corBar[k]}" title="${k}: ${fmt(cont[k])}"></i>`).join("");
+  if ($("#resArq")) $("#resArq").textContent = `${P.arquivo ? P.arquivo.name + " · " : ""}${fmt(tot)} endereços processados neste navegador. Clique num grupo para filtrar a tabela.`;
   $$("#chips .chip").forEach(b => b.onclick = () => { P.filtroConf = P.filtroConf === b.dataset.c ? null : b.dataset.c; renderResultado(); });
   const ft = MotorQuarteirao.textoBasico($("#filtroTexto").value);
   let lista = P.rows.filter(r => (!P.filtroConf || final(r).conf === P.filtroConf) && (!ft || MotorQuarteirao.textoBasico(r.ent.rua + " " + r.res.ruaEncontrada + " " + final(r).q).includes(ft)));
@@ -714,6 +717,36 @@ for (const [cod, zona, rings] of DADOS.quarteiroes) {
     POLIGONOS.push({ cod, zona, rings: r, bb: [mnx, mny, mxx, mxy] });
   }
 }
+// malha real dos quarteirões, desenhada de leve na barra lateral
+function desenharMalhaLateral() {
+  const cv = document.getElementById("malhaFundo"); if (!cv || !cv.offsetWidth) return;
+  const dpr = window.devicePixelRatio || 1, W = cv.offsetWidth, H = cv.offsetHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext("2d"); g.scale(dpr, dpr);
+  let mnx = 180, mny = 90, mxx = -180, mxy = -90;
+  for (const p of POLIGONOS) { mnx = Math.min(mnx, p.bb[0]); mny = Math.min(mny, p.bb[1]); mxx = Math.max(mxx, p.bb[2]); mxy = Math.max(mxy, p.bb[3]); }
+  const kx = Math.cos(-22.76 * Math.PI / 180);
+  const cx = (mnx + mxx) / 2, cy = (mny + mxy) / 2;
+  const esc = 2.4 * Math.max(W / ((mxx - mnx) * kx), H / (mxy - mny));   // recorte aproximado do centro
+  const px = x => W / 2 + (x - cx) * kx * esc, py = y => H * 0.55 - (y - cy) * esc;
+  g.lineWidth = 0.8; g.strokeStyle = "rgba(127,198,212,.28)";
+  g.beginPath();
+  for (const p of POLIGONOS) {
+    const a = p.rings[0]; if (!a || a.length < 3) continue;
+    const x0 = px(p.bb[0]), x1 = px(p.bb[2]), y0 = py(p.bb[3]), y1 = py(p.bb[1]);
+    if (x1 < 0 || x0 > W || y1 < 0 || y0 > H) continue;
+    g.moveTo(px(a[0][0]), py(a[0][1]));
+    for (let i = 1; i < a.length; i++) g.lineTo(px(a[i][0]), py(a[i][1]));
+    g.closePath();
+  }
+  g.stroke();
+  const fade = g.createLinearGradient(0, 0, 0, H);
+  const c = getComputedStyle(cv.parentElement).backgroundColor || "rgb(15,37,48)";
+  fade.addColorStop(0, c); fade.addColorStop(.3, "rgba(0,0,0,0)"); fade.addColorStop(.62, "rgba(0,0,0,0)"); fade.addColorStop(.9, c);
+  g.globalCompositeOperation = "source-over"; g.fillStyle = fade; g.fillRect(0, 0, W, H);
+}
+requestAnimationFrame(desenharMalhaLateral);
+window.addEventListener("resize", () => { clearTimeout(desenharMalhaLateral._t); desenharMalhaLateral._t = setTimeout(desenharMalhaLateral, 200); });
 function dentroAnel(x, y, anel) {
   let d = false;
   for (let i = 0, j = anel.length - 1; i < anel.length; j = i++) {
@@ -1056,7 +1089,7 @@ function renderCondList() {
   const l = MOTOR.condominios().filter(c => (!sit || c.situacao === sit) && (!ft || MotorQuarteirao.textoBasico(`${c.nome} ${c.rua} ${c.numero} ${c.bairro}`).includes(ft)))
     .sort((a, b) => (a.situacao === b.situacao ? 0 : a.situacao === "interno" ? -1 : 1) || (b.unidades || 0) - (a.unidades || 0));
   $("#tabCond").innerHTML = `<tr><th>Condomínio / portaria</th><th>Bairro</th><th>Unid.</th><th>Quarteirões</th><th>Situação</th></tr>` + l.map(c =>
-    `<tr class="click" data-id="${esc(c.id)}"><td>${c.nome ? `<b>${esc(c.nome)}</b><br>` : ""}${esc(c.rua)}, <span class="mono">${c.numero}</span></td><td>${esc(c.bairro)}</td><td class="mono">${c.unidades ? fmt(c.unidades) : "—"}</td><td class="mono">${esc((c.quarteiroes || []).join(", "))}</td><td>${c.situacao === "interno" ? '<span class="tag BAIXA">precisa endereço interno</span>' : '<span class="tag ALTA">portaria resolve</span>'}${Object.keys(c.mapa_interno || {}).length ? ` <span class="nota mono">${Object.keys(c.mapa_interno).length} int.</span>` : ""}</td></tr>`).join("");
+    `<tr class="click" data-id="${esc(c.id)}"><td>${c.nome ? `<b>${esc(c.nome)}</b><br>` : ""}${esc(c.rua)}, <span class="mono">${c.numero}</span></td><td>${esc(c.bairro)}</td><td class="mono">${c.unidades ? fmt(c.unidades) : "—"}</td><td class="mono">${esc((c.quarteiroes || []).join(", "))}</td><td>${c.situacao === "interno" ? '<span class="tag BAIXA" title="precisa endereço interno">end. interno</span>' : '<span class="tag ALTA" title="portaria resolve">portaria</span>'}${Object.keys(c.mapa_interno || {}).length ? ` <span class="nota mono">${Object.keys(c.mapa_interno).length} int.</span>` : ""}</td></tr>`).join("");
   $$("#tabCond tr.click").forEach(tr => tr.onclick = () => abrirCondEditor(tr.dataset.id));
 }
 $("#condFiltro").addEventListener("input", renderCondList);
@@ -1195,7 +1228,7 @@ function renderBase() {
     ["Condomínios", fmt(e.condominios)],
     ["Na fila p/ enviar", fmt(Sync.fila.length)],
     ["Quarteirões", fmt(new Set(DADOS.quarteiroes.map(q => q[0])).size)],
-  ].map(([a, b]) => `<dt>${a}</dt><dd class="mono">${b}</dd>`).join("");
+  ].map(([a, b]) => `<div class="k"><div class="v">${b}</div><div class="r">${a}</div></div>`).join("");
   $("#rodape").textContent = `${DADOS.fonte} · versão ${DADOS.versao}`;
   $("#cfgUrl").value = Sync.cfg.url; $("#cfgKey").value = Sync.cfg.key;
 }
