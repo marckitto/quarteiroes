@@ -1174,6 +1174,9 @@ function renderAcesso() {
   $("#impAdmin").classList.toggle("oculto", !admin);
   $("#impBloqueado").classList.toggle("oculto", admin);
   $("#lblImpApr").classList.toggle("oculto", !admin);
+  // configuração do servidor: só o administrador vê (ou quem tem uma configuração diferente da padrão salva, para poder restaurar)
+  const cfgMudada = Sync.cfg.url !== CFG_PADRAO.url || Sync.cfg.key !== CFG_PADRAO.key;
+  $("#cfgBox").classList.toggle("oculto", !(admin || cfgMudada));
   if (admin) carregarUsuarios();
 }
 async function carregarUsuarios() {

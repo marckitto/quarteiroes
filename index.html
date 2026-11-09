@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="versao" content="09/11/2026 15:36">
+<meta name="versao" content="09/11/2026 15:42">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quarteirão por Endereço</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -1322,7 +1322,7 @@ a.btn{color:var(--texto);text-decoration:none;display:inline-flex;align-items:ce
       <h2>Privacidade</h2>
       <p class="nota">A planilha é lida e processada só neste navegador e não fica salva depois que a página é fechada. Para a base compartilhada vão apenas <b>rua, número e quarteirão</b> (e os dados dos condomínios), com o usuário e o mês da correção — sem nome, agravo nem data de notificação.</p>
     </div>
-    <details class="card span2 cfg">
+    <details class="card span2 cfg oculto" id="cfgBox">
       <summary>Configuração do servidor</summary>
       <div style="margin-top:10px">
       <div class="campo"><label>URL do Supabase</label><input type="text" id="cfgUrl" class="mono"></div>
@@ -1333,7 +1333,7 @@ a.btn{color:var(--texto);text-decoration:none;display:inline-flex;align-items:ce
   </div>
 </section>
 </main>
-<footer>Base: <span id="rodape"></span> · versão do sistema <span class="mono">09/11/2026 15:36</span></footer>
+<footer>Base: <span id="rodape"></span> · versão do sistema <span class="mono">09/11/2026 15:42</span></footer>
 </div>
 </div>
 <div id="avisoVersao" class="oculto" style="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:2000;background:var(--texto);color:var(--painel);padding:10px 14px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:12px;align-items:center;font-size:13px">Nova versão do sistema disponível.<button class="btn peq" id="btnAtualizar">Atualizar agora</button></div>
@@ -3098,6 +3098,9 @@ function renderAcesso() {
   $("#impAdmin").classList.toggle("oculto", !admin);
   $("#impBloqueado").classList.toggle("oculto", admin);
   $("#lblImpApr").classList.toggle("oculto", !admin);
+  // configuração do servidor: só o administrador vê (ou quem tem uma configuração diferente da padrão salva, para poder restaurar)
+  const cfgMudada = Sync.cfg.url !== CFG_PADRAO.url || Sync.cfg.key !== CFG_PADRAO.key;
+  $("#cfgBox").classList.toggle("oculto", !(admin || cfgMudada));
   if (admin) carregarUsuarios();
 }
 async function carregarUsuarios() {
@@ -3347,7 +3350,7 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
   navigator.serviceWorker.addEventListener("controllerchange", () => { if (tinhaControle) $("#avisoVersao").classList.remove("oculto"); });
 }
 // Confere se há versão mais nova publicada (independe do cache do navegador)
-const VERSAO_APP = "09/11/2026 15:36";
+const VERSAO_APP = "09/11/2026 15:42";
 async function checarVersao() {
   if (!location.protocol.startsWith("http")) return;
   try {
