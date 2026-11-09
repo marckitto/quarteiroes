@@ -134,7 +134,9 @@ td.obs{color:var(--suave);font-size:12px;max-width:380px}
 .sug button:last-child{border-bottom:0}
 .sug button:hover,.sug button.sel{background:var(--realce-bg)}
 .sug .s{font-family:var(--mono);color:var(--fraco);font-size:12px}
-dl.ficha{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;margin:0;font-size:13px}
+dl.ficha{display:grid;grid-template-columns:minmax(110px,max-content) 1fr;gap:4px 12px;margin:0;font-size:13px}
+dl.ficha dt{max-width:190px;overflow-wrap:anywhere}
+dl.ficha dd{overflow-wrap:anywhere}
 dl.ficha dt{color:var(--suave)} dl.ficha dd{margin:0}
 .navrev{display:flex;align-items:center;gap:8px}
 .kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--borda);border-radius:4px;padding:0 4px;color:var(--suave)}
@@ -284,7 +286,7 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
           <label class="nota" style="display:flex;gap:6px;align-items:center;margin-top:4px"><input type="checkbox" id="revRuaNova"> rua nova, não está no CNEFE (loteamento recente) — usar o nome como digitado</label>
         </div>
         <div class="linha" style="margin-top:10px">
-          <div class="campo" style="max-width:130px"><label>Número</label><input type="number" id="revNum" min="1"></div>
+          <div class="campo" style="max-width:130px"><label>Número</label><input type="text" id="revNum" class="mono" placeholder="ex.: 33A" autocomplete="off"></div>
           <div class="campo" style="max-width:170px"><label>Quarteirão</label><input type="text" id="revQ" class="mono" placeholder="ex.: 0815 ou 1075A"></div>
           <div class="campo" id="revIntWrap" style="display:none"><label>Endereço interno do condomínio</label><input type="text" id="revInt" placeholder="ex.: QUADRA E"></div>
         </div>
@@ -433,7 +435,8 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
   </div>
 </section>
 </main>
-<footer>Base: <span id="rodape"></span></footer>
+<footer>Base: <span id="rodape"></span> · versão do sistema <span class="mono">__VERSAO__</span></footer>
+<div id="avisoVersao" class="oculto" style="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:2000;background:var(--texto);color:var(--painel);padding:10px 14px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:12px;align-items:center;font-size:13px">Nova versão do sistema disponível.<button class="btn peq" id="btnAtualizar">Atualizar agora</button></div>
 
 <script id="dados" type="application/json">__DADOS__</script>
 <script>/*__LEAFLET_JS__*/</script>

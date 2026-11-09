@@ -547,7 +547,7 @@ $("#btnExportar").onclick = async () => {
     const f = final(r);
     return P.cab.map((_, i) => r.orig[i] == null ? "" : r.orig[i]).concat([
       f.q || "", MOTOR.zona(f.q), f.conf, f.met, r.manual ? r.manual.nome : r.res.ruaEncontrada,
-      r.manual ? String(r.manual.numero || "") : (r.res.numero != null ? r.res.numero + (r.res.sufixo || "") : ""),
+      r.manual ? (r.manual.numero ? r.manual.numero + (r.manual.sufixo || "") : "") : (r.res.numero != null ? r.res.numero + (r.res.sufixo || "") : ""),
       r.res.condominioNome || "", r.res.lat ? +r.res.lat.toFixed(6) : "", r.res.lon ? +r.res.lon.toFixed(6) : "", r.manual ? "" : r.res.obs, f.mun]);
   });
   const iConf = P.cab.length + 2;
@@ -697,6 +697,12 @@ function consultaGoogle(r) {
   return [rua + (num ? ", " + num : ""), String(ent.bairro || "").trim(), cidade + " - SP"].filter(Boolean).join(", ");
 }
 
+// número digitado na revisão: "33", "33A", "33 A", "33-A"
+function lerNumeroDigitado(v) {
+  const m = String(v || "").trim().toUpperCase().match(/^(\d{1,5})\s*[-\/]?\s*([A-Z])?\b/);
+  return m && +m[1] > 0 ? { n: +m[1], suf: m[2] || "" } : { n: null, suf: "" };
+}
+
 // ------------------------------------------------------------------ REVISAR
 let mapaRev = null;
 function garantirMapaRev() {
@@ -832,7 +838,7 @@ function renderRevisao() {
   ESC = r.manual ? { chave: r.manual.chave, nome: r.manual.nome } : (res.chaveRua ? { chave: res.chaveRua, nome: res.ruaEncontrada } : null);
   $("#revRua").value = ESC ? ESC.nome : (res.ruaLimpa || "");
   $("#revRuaNova").checked = !!(r.manual && r.manual.nova);
-  $("#revNum").value = r.manual ? (r.manual.numero || "") : (res.numero != null ? res.numero : "");
+  $("#revNum").value = r.manual ? (r.manual.numero ? r.manual.numero + (r.manual.sufixo || "") : "") : (res.numero != null ? res.numero + (res.sufixo || "") : "");
   $("#revQ").value = f.q || "";
   if (!$("#listaCidades").children.length) $("#listaCidades").innerHTML = MOTOR.cidades().map(c => `<option value="${esc(c)}">`).join("");
   $("#revCidade").value = f.conf === "OUTRA CIDADE" && !/^outro município/.test(f.mun) ? f.mun : "";
@@ -894,7 +900,8 @@ function salvarRevisao(confirmar) {
   const q = normQ(confirmar ? res.quarteirao : $("#revQ").value);
   if (!q) { msg("#revMsg", "erro", "Informe o quarteirão (digite ou clique no mapa)."); return; }
   if (!MOTOR.existeQuarteirao(q) && avisoQ !== q) { avisoQ = q; msg("#revMsg", "aviso", `O quarteirão <b class="mono">${esc(q)}</b> não existe na malha. Clique em salvar de novo para gravar mesmo assim.`); return; }
-  const numero = parseInt(confirmar ? res.numero : $("#revNum").value, 10) || null;
+  const ln = confirmar ? { n: res.numero, suf: res.sufixo || "" } : lerNumeroDigitado($("#revNum").value);
+  const numero = ln.n || null, sufixo = ln.suf;
   let rua;
   if (confirmar) rua = res.chaveRua ? { chave: res.chaveRua, nome: res.ruaEncontrada } : null;
   else if ($("#revRuaNova").checked) { const t = $("#revRua").value.trim(); rua = t ? { chave: MOTOR.chaveRua(t).chave, nome: MotorQuarteirao.textoBasico(t), nova: true } : null; }
@@ -915,7 +922,7 @@ function salvarRevisao(confirmar) {
   } else aviso = "Sem número a correção vale só para esta linha (não foi aprendida).";
   if (res.chaveDigitada && res.chaveDigitada !== rua.chave && res.chaveDigitada.length >= 4)
     Sync.registrar("aliases", { de: res.chaveDigitada, para: rua.chave, nome: rua.nome });
-  r.manual = { q, chave: rua.chave, nome: rua.nome, numero, nova: !!rua.nova };
+  r.manual = { q, chave: rua.chave, nome: rua.nome, numero, sufixo, nova: !!rua.nova };
   aplicarAprendizado(true);
   if (aviso) { msg("#revMsg", "aviso", aviso); setTimeout(() => avancar(), 1400); }
   else avancar();
@@ -943,7 +950,7 @@ $("#revOutra").onclick = () => {
 $("#revCondNovo").onclick = () => {
   const r = P.rows[REV.fila[REV.pos]];
   const rua = ESC || (r.res.chaveRua ? { chave: r.res.chaveRua, nome: r.res.ruaEncontrada } : null);
-  const numero = parseInt($("#revNum").value, 10);
+  const numero = lerNumeroDigitado($("#revNum").value).n;
   if (!rua || !numero) { msg("#revMsg", "erro", "Para cadastrar o condomínio escolha a rua e informe o número da portaria."); return; }
   const q = normQ($("#revQ").value);
   const id = "u-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -1293,7 +1300,19 @@ setTimeout(() => {
   if (Sync._voltouDoEmail) { irAba("base"); msg("#lgMsg", "ok", "E-mail confirmado e conectado."); }
   else if (Sync._erroLink) { irAba("base"); msg("#lgMsg", "aviso", "O link do e-mail não funcionou (" + esc(Sync._erroLink) + "). Se você já confirmou antes, é só entrar com e-mail e senha."); }
 }, 300);
-if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) navigator.serviceWorker.register("sw.js").catch(e => console.warn("sw", e));
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  const tinhaControle = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register("sw.js").then(reg => {
+    reg.update().catch(() => {});
+    setInterval(() => reg.update().catch(() => {}), 30 * 60 * 1000);
+  }).catch(e => console.warn("sw", e));
+  // versão nova publicada: avisa e deixa atualizar sem perder a planilha aberta por engano
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (tinhaControle) $("#avisoVersao").classList.remove("oculto"); });
+  $("#btnAtualizar").onclick = () => {
+    if (P.rows.some(r => r.manual) && !confirm("Atualizar recarrega a página. As correções já foram salvas na base, mas a planilha aberta precisará ser carregada de novo. Continuar?")) return;
+    window.removeEventListener("beforeunload", () => {}); location.reload();
+  };
+}
 Sync.iniciar();
 renderBase();
 })();

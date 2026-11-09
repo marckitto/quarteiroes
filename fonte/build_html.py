@@ -1,7 +1,7 @@
 """Gera ../index.html (arquivo único) a partir de app.html + app.js + engine.js + dados.json + Leaflet.
 Uso:  cd fonte && python build_html.py
 Para atualizar CNEFE/malha: rode build_data.py (precisa do CSV do CNEFE e do KMZ) e depois este."""
-import re, os
+import re, os, datetime
 aqui = os.path.dirname(os.path.abspath(__file__)); j = lambda *p: os.path.join(aqui, *p)
 t = open(j('app.html'), encoding='utf-8').read()
 lj = re.sub(r'//# sourceMappingURL=.*$', '', open(j('..', 'vendor', 'leaflet', 'leaflet.js'), encoding='utf-8').read(), flags=re.M)
@@ -12,6 +12,6 @@ app = app.replace('__SUPABASE_URL__', 'https://psyfcwpupjsxpfgienxr.supabase.co'
 dados = open(j('dados.json'), encoding='utf-8').read().replace('</', '<\\/')
 for nome, s in [('leaflet', lj), ('engine', eng), ('app', app)]:
     assert '</script' not in s.lower(), nome
-out = t.replace('/*__LEAFLET_CSS__*/', lc).replace('/*__LEAFLET_JS__*/', lj).replace('/*__ENGINE__*/', eng).replace('/*__APP__*/', app).replace('__DADOS__', dados)
+out = t.replace('/*__LEAFLET_CSS__*/', lc).replace('/*__LEAFLET_JS__*/', lj).replace('/*__ENGINE__*/', eng).replace('/*__APP__*/', app).replace('__DADOS__', dados).replace('__VERSAO__', datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-3))).strftime('%d/%m/%Y %H:%M'))
 open(j('..', 'index.html'), 'w', encoding='utf-8').write(out)
 print('index.html gerado:', round(len(out.encode()) / 1e6, 2), 'MB')
