@@ -584,6 +584,7 @@ function criarMapa(div, aoClicar) {
   }
   const camadaPontos = L.layerGroup().addTo(map);
   const camadaRotulos = L.layerGroup().addTo(map);
+  const camadaMarca = L.layerGroup().addTo(map);
   let destaque = [];
   function rotular() {
     camadaRotulos.clearLayers();
@@ -626,9 +627,74 @@ function criarMapa(div, aoClicar) {
       }
       return b;
     },
+    marcar(ll, texto) {
+      camadaMarca.clearLayers();
+      if (!ll) return;
+      L.circleMarker(ll, { radius: 9, color: "#fff", weight: 3, fillColor: "#d93025", fillOpacity: 1, renderer }).bindTooltip(texto || "", { permanent: !!texto, direction: "top", offset: [0, -8] }).addTo(camadaMarca);
+      map.setView(ll, Math.max(map.getZoom(), 18));
+    },
     enquadrar(b, zoomMax) { if (b && b.isValid()) map.fitBounds(b.pad(0.25), { maxZoom: zoomMax || 18 }); },
     irPara(q) { const ps = polyPorQ.get(normQ(q)) || polyPorQ.get(q); if (!ps) return false; const b = L.latLngBounds([]); ps.forEach(p => b.extend(p.getBounds())); map.fitBounds(b.pad(1.2), { maxZoom: 18 }); return true; },
   };
+}
+
+// ------------------------------------------------------------------ ponto → quarteirão / Google Maps
+const KX = 111320 * Math.cos(-22.76 * Math.PI / 180), KY = 110540;
+const POLIGONOS = [];
+for (const [cod, zona, rings] of DADOS.quarteiroes) {
+  if (!/\d/.test(cod)) continue;                        // áreas "(XXXX)" sem número
+  for (const r of rings) {
+    let mnx = 180, mny = 90, mxx = -180, mxy = -90;
+    for (const [x, y] of r[0]) { if (x < mnx) mnx = x; if (x > mxx) mxx = x; if (y < mny) mny = y; if (y > mxy) mxy = y; }
+    POLIGONOS.push({ cod, zona, rings: r, bb: [mnx, mny, mxx, mxy] });
+  }
+}
+function dentroAnel(x, y, anel) {
+  let d = false;
+  for (let i = 0, j = anel.length - 1; i < anel.length; j = i++) {
+    const [xi, yi] = anel[i], [xj, yj] = anel[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) d = !d;
+  }
+  return d;
+}
+function distSegM(px, py, ax, ay, bx, by) {
+  const X = (v) => v * KX, Y = (v) => v * KY;
+  const x = X(px), y = Y(py), x1 = X(ax), y1 = Y(ay), x2 = X(bx), y2 = Y(by);
+  const dx = x2 - x1, dy = y2 - y1, l = dx * dx + dy * dy;
+  let t = l ? ((x - x1) * dx + (y - y1) * dy) / l : 0; t = Math.max(0, Math.min(1, t));
+  return Math.hypot(x - (x1 + t * dx), y - (y1 + t * dy));
+}
+/** Quarteirão que contém o ponto; se o ponto cair na rua, o mais próximo até 30 m. */
+function quarteiraoNoPonto(lat, lon) {
+  let melhor = null;
+  for (const p of POLIGONOS) {
+    const [a, b, c, d] = p.bb, m = 0.0004;
+    if (lon < a - m || lon > c + m || lat < b - m || lat > d + m) continue;
+    if (dentroAnel(lon, lat, p.rings[0]) && !p.rings.slice(1).some(h => dentroAnel(lon, lat, h))) return { q: p.cod, zona: p.zona, dist: 0 };
+    for (const anel of p.rings) for (let i = 1; i < anel.length; i++) {
+      const dm = distSegM(lon, lat, anel[i - 1][0], anel[i - 1][1], anel[i][0], anel[i][1]);
+      if (dm <= 30 && (!melhor || dm < melhor.dist)) melhor = { q: p.cod, zona: p.zona, dist: Math.round(dm) };
+    }
+  }
+  return melhor;
+}
+/** Lê coordenadas coladas: "-22.76, -47.15", link do Google Maps (@lat,lon ou !3d…!4d…), "-22,76 -47,15". */
+function lerCoordenadas(txt) {
+  const t = String(txt || "").trim();
+  let m = t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/@(-?\d+\.\d+),\s*(-?\d+\.\d+)/) || t.match(/[?&](?:q|ll|query)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/)
+    || t.match(/(-?\d{1,2}\.\d+)\s*[,;\s]\s*(-?\d{1,3}\.\d+)/) || t.match(/(-?\d{1,2},\d+)\s*[;\s]\s*(-?\d{1,3},\d+)/);
+  if (!m) return null;
+  const lat = parseFloat(m[1].replace(",", ".")), lon = parseFloat(m[2].replace(",", "."));
+  if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  return { lat, lon };
+}
+const urlGoogle = (q, embed) => "https://maps.google.com/maps?q=" + encodeURIComponent(q) + "&hl=pt-BR&z=17" + (embed ? "&output=embed" : "");
+function consultaGoogle(r) {
+  const res = r.res, ent = r.ent;
+  const rua = (ESC && ESC.nome) || res.ruaLimpa || String(ent.rua || "");
+  const num = res.numero != null ? res.numero : "";
+  const cidade = final(r).conf === "OUTRA CIDADE" && !/^outro município/.test(final(r).mun) ? final(r).mun : "Paulínia";
+  return [rua + (num ? ", " + num : ""), String(ent.bairro || "").trim(), cidade + " - SP"].filter(Boolean).join(", ");
 }
 
 // ------------------------------------------------------------------ REVISAR
@@ -637,8 +703,51 @@ function garantirMapaRev() {
   if (mapaRev) return;
   mapaRev = criarMapa("mapaRev", q => { $("#revQ").value = q; validarQ(); });
   $("#chkFundo").checked = mapaRev.usandoFundo();
+  let modo = "quart"; try { modo = localStorage.getItem("qe-modo-mapa") || "quart"; } catch (e) {}
+  definirModoMapa(modo);
   $("#chkFundo").onchange = e => mapaRev.fundo(e.target.checked);
 }
+let MODO_MAPA = "quart", gmUltima = "";
+function definirModoMapa(m) {
+  MODO_MAPA = m; try { localStorage.setItem("qe-modo-mapa", m); } catch (e) {}
+  $("#vmQuart").setAttribute("aria-pressed", m === "quart"); $("#vmGoogle").setAttribute("aria-pressed", m === "google"); $("#vmDuplo").setAttribute("aria-pressed", m === "duplo");
+  $("#mapaQuartWrap").classList.toggle("oculto", m === "google");
+  $("#mapaGoogleWrap").classList.toggle("oculto", m === "quart");
+  $("#gmBarra").classList.toggle("oculto", m === "quart");
+  $("#mapasWrap").classList.toggle("duplo", m === "duplo");
+  if (m !== "quart" && $("#gmBusca").value && gmUltima !== $("#gmBusca").value) carregarGoogle();
+  setTimeout(() => mapaRev && mapaRev.map.invalidateSize(), 60);
+}
+function carregarGoogle() {
+  const q = $("#gmBusca").value.trim(); if (!q) return;
+  gmUltima = q;
+  $("#gmFrame").src = urlGoogle(q, true);
+  $("#gmFrame").classList.remove("oculto"); $("#gmVazio").classList.add("oculto");
+}
+$("#vmQuart").onclick = () => definirModoMapa("quart");
+$("#vmGoogle").onclick = () => definirModoMapa("google");
+$("#vmDuplo").onclick = () => definirModoMapa("duplo");
+$("#gmIr").onclick = carregarGoogle;
+$("#gmBusca").addEventListener("keydown", e => { if (e.key === "Enter") carregarGoogle(); });
+$("#gmBusca").addEventListener("input", () => { $("#gmAbrir").href = urlGoogle($("#gmBusca").value, false); });
+function usarCoordenadas() {
+  const c = lerCoordenadas($("#gmCoord").value);
+  if (!c) { msg("#revMsg", "erro", "Não reconheci as coordenadas. Cole no formato -22.7612, -47.1543 ou o link do Google Maps."); return; }
+  const achado = quarteiraoNoPonto(c.lat, c.lon);
+  if (MODO_MAPA === "google") definirModoMapa("duplo");
+  if (!achado) {
+    mapaRev.marcar([c.lat, c.lon], "ponto colado");
+    msg("#revMsg", "aviso", "O ponto não cai em nenhum quarteirão numerado de Paulínia. Se for de outro município, use “Marcar como outra cidade”.");
+    return;
+  }
+  $("#revQ").value = achado.q; validarQ();
+  mapaRev.marcar([c.lat, c.lon], achado.q);
+  msg("#revMsg", "ok", `O ponto cai no quarteirão <b class="mono">${esc(achado.q)}</b>${achado.zona ? " · " + esc(achado.zona) : ""}${achado.dist ? ` (na rua, a ${achado.dist} m)` : ""}. Confira e salve.`);
+}
+$("#gmUsar").onclick = usarCoordenadas;
+$("#gmCoord").addEventListener("keydown", e => { if (e.key === "Enter") usarCoordenadas(); });
+$("#gmCoord").addEventListener("paste", () => setTimeout(usarCoordenadas, 30));
+
 function filtroRev(r) {
   const f = REV.filtro;
   if (f === "todos") return true;
@@ -728,6 +837,8 @@ function renderRevisao() {
   if (!$("#listaCidades").children.length) $("#listaCidades").innerHTML = MOTOR.cidades().map(c => `<option value="${esc(c)}">`).join("");
   $("#revCidade").value = f.conf === "OUTRA CIDADE" && !/^outro município/.test(f.mun) ? f.mun : "";
   avisoQ = null; msg("#revMsg", "", "");
+  $("#gmBusca").value = consultaGoogle(r); $("#gmAbrir").href = urlGoogle($("#gmBusca").value, false); $("#gmCoord").value = "";
+  if (MODO_MAPA !== "quart" && pendente(r)) carregarGoogle();
   renderSugestoes(ESC ? "" : $("#revRua").value, r);
   $("#revAlts").innerHTML = (res.alternativas || []).filter(q => !(cond && (cond.quarteiroes || []).includes(q))).map(q => `<button class="btn peq mono" data-q="${esc(q)}">${esc(q)}</button>`).join("");
   $$("#revAlts [data-q]").forEach(b => b.onclick = () => { $("#revQ").value = b.dataset.q; validarQ(); mapaRev.irPara(b.dataset.q); });
@@ -735,6 +846,7 @@ function renderRevisao() {
 }
 function atualizarMapaRev(r) {
   const res = r.res; const f = final(r);
+  mapaRev.marcar(null);
   const chave = ESC ? ESC.chave : res.chaveRua;
   const regs = chave ? MOTOR.numerosDaRua(chave) : [];
   const apr = chave ? [...MOTOR.aprendidosDaRua(chave)].map(([n, q]) => ({ n, q, lat: null })) : [];
@@ -984,6 +1096,7 @@ $("#btnSair").onclick = () => Sync.sair();
 $("#btnSync").onclick = async () => { msg("#lgMsg", "aviso", "Sincronizando…"); await Sync.sincronizar(); msg("#lgMsg", Sync.estado === "ok" ? "ok" : "aviso", Sync.estado === "ok" ? "Base em dia." : esc(Sync._erro || Sync.estado)); };
 
 function renderBase() {
+  if ($("#faixaBase")) renderFaixaBase();
   const corr = Object.values(Sync.apr.correcoes).filter(c => c.quarteirao).length;
   const e = MOTOR.estat();
   $("#baseEstat").innerHTML = [
@@ -1130,6 +1243,49 @@ $("#impAnalisar").onclick = async () => {
     msg("#impMsg", "ok", `${fmt(n)} endereços importados como “${esc(fonte)}”.${Sync.sessao ? " Enviando para a base compartilhada." : " Entre com seu login para enviar à base compartilhada."}`);
   };
 };
+
+// ------------------------------------------------------------------ página inicial
+let mapaHome = null;
+function renderFaixaBase() {
+  const corr = Object.values(Sync.apr.correcoes).filter(c => c.quarteirao).length;
+  const itens = [
+    [fmt(new Set(DADOS.quarteiroes.map(q => q[0]).filter(c => /\d/.test(c))).size), "quarteirões na malha"],
+    [fmt(DADOS.ruas.length), "ruas com numeração (CNEFE)"],
+    [fmt(corr), "correções aprendidas"],
+    [fmt(MOTOR.condominios().length), "condomínios mapeados"],
+  ];
+  $("#faixaBase").innerHTML = itens.map(([v, r]) => `<div class="k"><div class="v">${v}</div><div class="r">${r}</div></div>`).join("");
+}
+function consultaRapida() {
+  const txt = $("#cqRua").value.trim(), num = $("#cqNum").value.trim();
+  $("#cqGoogle").href = urlGoogle([txt + (num ? ", " + num : ""), "Paulínia - SP"].filter(Boolean).join(", "), false);
+  if (!txt) return;
+  if (!mapaHome) mapaHome = criarMapa("mapaHome", null);
+  const c = lerCoordenadas(txt);
+  if (c && /^[-\d.,;\s]+$|google|maps|goo\.gl/i.test(txt)) {
+    const a = quarteiraoNoPonto(c.lat, c.lon);
+    mapaHome.destacar(a ? a.q : null, []); mapaHome.marcar([c.lat, c.lon], a ? a.q : "fora da malha");
+    $("#cqRes").innerHTML = a ? `<div class="linha" style="justify-content:space-between"><span class="q">${esc(a.q)}</span><span class="tag ALTA">PONTO</span></div><div class="nota">${esc(a.zona)} · pelas coordenadas${a.dist ? `, a ${a.dist} m (na rua)` : ""}</div>`
+      : `<span class="nota">O ponto não cai em nenhum quarteirão numerado de Paulínia.</span>`;
+    return;
+  }
+  const r = MOTOR.processar({ rua: txt, numero: num });
+  const cls = confCls(r.confianca);
+  $("#cqRes").innerHTML = `<div class="linha" style="justify-content:space-between"><span class="q">${esc(r.quarteirao || "—")}</span><span class="tag ${cls}">${esc(r.confianca)}</span></div>
+    <div class="nota">${r.zona ? esc(r.zona) + " · " : ""}${esc(r.ruaEncontrada || "rua não encontrada")}${r.numero != null ? ", " + r.numero : ""} · ${esc(r.metodo)}</div>
+    ${r.obs ? `<div class="nota" style="margin-top:4px">${esc(r.obs)}</div>` : ""}
+    ${!r.quarteirao && r.confianca !== "OUTRA CIDADE" ? `<div class="nota" style="margin-top:4px">Não achou? Abra no Google Maps, copie as coordenadas do imóvel (botão direito) e cole no campo Endereço.</div>` : ""}`;
+  const regs = r.chaveRua ? MOTOR.numerosDaRua(r.chaveRua) : [];
+  const b1 = mapaHome.pontos(regs, r.numero, null);
+  const b2 = mapaHome.destacar(r.quarteirao, r.alternativas || []);
+  mapaHome.marcar(r.lat ? [r.lat, r.lon] : null);
+  if (r.lat) mapaHome.map.setView([r.lat, r.lon], 18); else if (b2.isValid()) mapaHome.enquadrar(b2, 18); else if (b1.isValid()) mapaHome.enquadrar(b1, 16);
+}
+$("#cqBuscar").onclick = consultaRapida;
+["#cqRua", "#cqNum"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") consultaRapida(); }));
+$("#cqRua").addEventListener("input", () => { $("#cqGoogle").href = urlGoogle([$("#cqRua").value.trim() + ($("#cqNum").value.trim() ? ", " + $("#cqNum").value.trim() : ""), "Paulínia - SP"].join(", "), false); });
+$("#cqGoogle").href = urlGoogle("Paulínia - SP", false);
+setTimeout(() => { if (!mapaHome && abaAtual === "processar") { mapaHome = criarMapa("mapaHome", null); mapaHome.map.setView([-22.765, -47.155], 13); } }, 200);
 
 // ------------------------------------------------------------------ início
 $("#nCond").textContent = MOTOR.condominios().length;

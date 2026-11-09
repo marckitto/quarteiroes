@@ -67,6 +67,42 @@ input:focus,select:focus,textarea:focus{border-color:var(--realce);box-shadow:0 
 .btn:disabled{opacity:.5;cursor:default}
 .btn.peq{padding:4px 9px;font-size:12px}
 .drop{border:2px dashed var(--borda);border-radius:var(--raio);padding:34px;text-align:center;color:var(--suave);cursor:pointer;background:var(--painel)}
+/* ---- página inicial */
+.home{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);gap:16px;align-items:stretch}
+@media (max-width:980px){.home{grid-template-columns:1fr}}
+.home-hero{display:flex;flex-direction:column;gap:14px}
+.home-hero h2{font-size:22px;line-height:1.25;margin:0;font-weight:700;letter-spacing:-.2px}
+.home-hero .lead{color:var(--suave);margin:0;max-width:60ch}
+.home .drop{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:220px;padding:28px}
+.home .drop .ico{width:52px;height:52px;border-radius:12px;background:var(--realce-bg);color:var(--realce);display:grid;place-items:center}
+.home .drop .ico svg{width:28px;height:28px}
+.home .drop .btn{margin-top:6px;pointer-events:none}
+.passos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:640px){.passos{grid-template-columns:1fr}}
+.passo{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--borda);border-radius:var(--raio);background:var(--painel)}
+.passo b{display:block;font-size:13px}
+.passo span.nota{display:block}
+.passo .num{flex:none;width:24px;height:24px;border-radius:50%;background:var(--realce-bg);color:var(--realce);display:grid;place-items:center;font:600 12px var(--mono)}
+.consulta .res{margin-top:10px;padding:10px 12px;border-radius:var(--raio);background:var(--bg);border:1px solid var(--borda);min-height:58px}
+.consulta .res .q{font:700 26px var(--mono);letter-spacing:.5px}
+.mini-mapa{height:230px;margin-top:10px;border-radius:var(--raio);border:1px solid var(--borda)}
+.faixa-base{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:16px}
+.faixa-base .k{padding:10px 12px;border:1px solid var(--borda);border-radius:var(--raio);background:var(--painel)}
+.faixa-base .k .v{font:650 18px var(--mono)}
+.faixa-base .k .r{font-size:12px;color:var(--suave)}
+.privacidade{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding:10px 12px;border-radius:var(--raio);background:var(--alta-bg);color:var(--alta);font-size:13px}
+.privacidade svg{flex:none;width:18px;height:18px;margin-top:1px}
+/* ---- Google Maps na revisão */
+.mapas{display:grid;grid-template-columns:1fr;gap:10px}
+.mapas.duplo{grid-template-columns:1fr 1fr}
+@media (max-width:1250px){.mapas.duplo{grid-template-columns:1fr}}
+.gm-painel{display:flex;flex-direction:column;gap:8px}
+.gm-frame{width:100%;height:520px;border:1px solid var(--borda);border-radius:var(--raio);background:var(--bg)}
+.mapas.duplo .gm-frame,.mapas.duplo .mapa{height:460px}
+.gm-vazio{height:520px;display:grid;place-items:center;text-align:center;color:var(--suave);border:1px dashed var(--borda);border-radius:var(--raio);padding:20px}
+.abas-mapa{display:inline-flex;border:1px solid var(--borda);border-radius:6px;overflow:hidden}
+.abas-mapa button{border:0;background:var(--painel);padding:5px 10px;cursor:pointer;font-size:12.5px;color:var(--suave)}
+.abas-mapa button[aria-pressed="true"]{background:var(--realce-bg);color:var(--realce);font-weight:600}
 .drop.sobre{border-color:var(--realce);background:var(--realce-bg);color:var(--realce)}
 .drop strong{color:var(--texto)}
 .nota{font-size:12px;color:var(--suave)}
@@ -135,11 +171,43 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
 <!-- ============================================================ PROCESSAR -->
 <section class="aba ativa" id="aba-processar">
   <div id="etapaArquivo">
-    <label class="drop" id="drop">
-      <input type="file" id="arquivo" accept=".xlsx,.csv,.txt" hidden>
-      <div style="font-size:15px"><strong>Arraste a planilha de endereços aqui</strong> ou clique para escolher</div>
-      <div class="nota" style="margin-top:6px">.xlsx ou .csv · o arquivo é lido neste computador e não é enviado para lugar nenhum</div>
-    </label>
+    <div class="home">
+      <div class="home-hero">
+        <div>
+          <h2>Do endereço ao quarteirão, em segundos</h2>
+          <p class="lead">Carregue qualquer lista de endereços da Vigilância em Saúde — notificações, visitas, cadastros — e receba de volta o quarteirão e a zona de cada um, com o grau de confiança.</p>
+        </div>
+        <label class="drop" id="drop">
+          <input type="file" id="arquivo" accept=".xlsx,.csv,.txt" hidden>
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg></span>
+          <div style="font-size:16px"><strong>Arraste a planilha aqui</strong></div>
+          <div class="nota">.xlsx ou .csv — rua, número, bairro e CEP são reconhecidos pelo nome da coluna</div>
+          <span class="btn pri">Escolher arquivo</span>
+        </label>
+        <div class="passos">
+          <div class="passo"><span class="num">1</span><div><b>Carregar</b><span class="nota">Confira as colunas e processe.</span></div></div>
+          <div class="passo"><span class="num">2</span><div><b>Revisar</b><span class="nota">Só os duvidosos, com mapa e Google Maps.</span></div></div>
+          <div class="passo"><span class="num">3</span><div><b>Baixar</b><span class="nota">A planilha volta com quarteirão e zona.</span></div></div>
+        </div>
+      </div>
+      <div class="card consulta">
+        <h2>Consulta rápida</h2>
+        <p class="nota" style="margin:-4px 0 10px">Um endereço só, sem planilha.</p>
+        <div class="linha">
+          <div class="campo" style="flex:3"><label>Endereço</label><input type="text" id="cqRua" placeholder="ex.: Rua Tom Jobim, 51" autocomplete="off"></div>
+          <div class="campo" style="max-width:110px;min-width:90px"><label>Número</label><input type="text" id="cqNum" placeholder="opcional"></div>
+        </div>
+        <div class="linha" style="margin-top:8px">
+          <button class="btn pri" id="cqBuscar">Localizar</button>
+          <a class="btn" id="cqGoogle" target="_blank" rel="noopener" style="text-decoration:none">Ver no Google Maps ↗</a>
+        </div>
+        <div class="res" id="cqRes"><span class="nota">O quarteirão aparece aqui.</span></div>
+        <div class="mini-mapa" id="mapaHome"></div>
+      </div>
+    </div>
+    <div class="faixa-base" id="faixaBase"></div>
+    <div class="privacidade"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+      <div><b>A planilha não sai deste computador.</b> Ela é lida e processada aqui no navegador e some ao fechar a página. Para a base compartilhada vão só rua, número e quarteirão das correções.</div></div>
   </div>
 
   <div id="etapaColunas" class="card oculto">
@@ -236,13 +304,35 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
       </div>
       <div class="card">
         <div class="linha" style="justify-content:space-between;margin-bottom:8px">
-          <h2 style="margin:0">Mapa <span class="nota">clique no quarteirão para escolher</span></h2>
+          <div class="linha" style="gap:8px">
+            <h2 style="margin:0">Mapa</h2>
+            <div class="abas-mapa" role="group" aria-label="Mapas">
+              <button id="vmQuart" aria-pressed="true">Quarteirões</button>
+              <button id="vmGoogle" aria-pressed="false">Google Maps</button>
+              <button id="vmDuplo" aria-pressed="false" title="Os dois lado a lado">Lado a lado</button>
+            </div>
+          </div>
           <div class="linha">
             <input type="text" id="revBuscaQ" class="mono" placeholder="ir ao quarteirão" style="width:140px">
             <label class="nota" style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="chkFundo" checked> fundo OSM</label>
           </div>
         </div>
-        <div class="mapa" id="mapaRev"></div>
+        <div class="gm-painel oculto" id="gmBarra" style="margin-bottom:8px">
+          <div class="linha">
+            <input type="text" id="gmBusca" placeholder="endereço para pesquisar no Google Maps" style="flex:1;min-width:220px">
+            <button class="btn pri" id="gmIr">Pesquisar</button>
+            <a class="btn" id="gmAbrir" target="_blank" rel="noopener" style="text-decoration:none" title="Abrir no Google Maps em outra aba">↗</a>
+          </div>
+          <div class="linha">
+            <input type="text" id="gmCoord" class="mono" placeholder="cole aqui coordenadas ou link do Google Maps (ex.: -22.7612, -47.1543)" style="flex:1;min-width:220px">
+            <button class="btn" id="gmUsar">Achar quarteirão</button>
+          </div>
+          <span class="nota">Para pegar as coordenadas: no Google Maps, clique com o botão direito no imóvel e clique nos números que aparecem (são copiados). Só o endereço digitado vai para o Google, nunca nomes.</span>
+        </div>
+        <div class="mapas" id="mapasWrap">
+          <div id="mapaQuartWrap"><div class="mapa" id="mapaRev"></div></div>
+          <div id="mapaGoogleWrap" class="oculto"><div class="gm-vazio" id="gmVazio">Pesquise um endereço para ver no Google Maps.</div><iframe class="gm-frame oculto" id="gmFrame" title="Google Maps" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+        </div>
         <p class="nota" id="legendaMapa">Pontos: números da rua no CNEFE (cor = quarteirão). Contorno grosso: sugestão.</p>
       </div>
     </div>

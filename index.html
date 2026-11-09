@@ -728,6 +728,42 @@ input:focus,select:focus,textarea:focus{border-color:var(--realce);box-shadow:0 
 .btn:disabled{opacity:.5;cursor:default}
 .btn.peq{padding:4px 9px;font-size:12px}
 .drop{border:2px dashed var(--borda);border-radius:var(--raio);padding:34px;text-align:center;color:var(--suave);cursor:pointer;background:var(--painel)}
+/* ---- página inicial */
+.home{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);gap:16px;align-items:stretch}
+@media (max-width:980px){.home{grid-template-columns:1fr}}
+.home-hero{display:flex;flex-direction:column;gap:14px}
+.home-hero h2{font-size:22px;line-height:1.25;margin:0;font-weight:700;letter-spacing:-.2px}
+.home-hero .lead{color:var(--suave);margin:0;max-width:60ch}
+.home .drop{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:220px;padding:28px}
+.home .drop .ico{width:52px;height:52px;border-radius:12px;background:var(--realce-bg);color:var(--realce);display:grid;place-items:center}
+.home .drop .ico svg{width:28px;height:28px}
+.home .drop .btn{margin-top:6px;pointer-events:none}
+.passos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:640px){.passos{grid-template-columns:1fr}}
+.passo{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--borda);border-radius:var(--raio);background:var(--painel)}
+.passo b{display:block;font-size:13px}
+.passo span.nota{display:block}
+.passo .num{flex:none;width:24px;height:24px;border-radius:50%;background:var(--realce-bg);color:var(--realce);display:grid;place-items:center;font:600 12px var(--mono)}
+.consulta .res{margin-top:10px;padding:10px 12px;border-radius:var(--raio);background:var(--bg);border:1px solid var(--borda);min-height:58px}
+.consulta .res .q{font:700 26px var(--mono);letter-spacing:.5px}
+.mini-mapa{height:230px;margin-top:10px;border-radius:var(--raio);border:1px solid var(--borda)}
+.faixa-base{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:16px}
+.faixa-base .k{padding:10px 12px;border:1px solid var(--borda);border-radius:var(--raio);background:var(--painel)}
+.faixa-base .k .v{font:650 18px var(--mono)}
+.faixa-base .k .r{font-size:12px;color:var(--suave)}
+.privacidade{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding:10px 12px;border-radius:var(--raio);background:var(--alta-bg);color:var(--alta);font-size:13px}
+.privacidade svg{flex:none;width:18px;height:18px;margin-top:1px}
+/* ---- Google Maps na revisão */
+.mapas{display:grid;grid-template-columns:1fr;gap:10px}
+.mapas.duplo{grid-template-columns:1fr 1fr}
+@media (max-width:1250px){.mapas.duplo{grid-template-columns:1fr}}
+.gm-painel{display:flex;flex-direction:column;gap:8px}
+.gm-frame{width:100%;height:520px;border:1px solid var(--borda);border-radius:var(--raio);background:var(--bg)}
+.mapas.duplo .gm-frame,.mapas.duplo .mapa{height:460px}
+.gm-vazio{height:520px;display:grid;place-items:center;text-align:center;color:var(--suave);border:1px dashed var(--borda);border-radius:var(--raio);padding:20px}
+.abas-mapa{display:inline-flex;border:1px solid var(--borda);border-radius:6px;overflow:hidden}
+.abas-mapa button{border:0;background:var(--painel);padding:5px 10px;cursor:pointer;font-size:12.5px;color:var(--suave)}
+.abas-mapa button[aria-pressed="true"]{background:var(--realce-bg);color:var(--realce);font-weight:600}
 .drop.sobre{border-color:var(--realce);background:var(--realce-bg);color:var(--realce)}
 .drop strong{color:var(--texto)}
 .nota{font-size:12px;color:var(--suave)}
@@ -796,11 +832,43 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
 <!-- ============================================================ PROCESSAR -->
 <section class="aba ativa" id="aba-processar">
   <div id="etapaArquivo">
-    <label class="drop" id="drop">
-      <input type="file" id="arquivo" accept=".xlsx,.csv,.txt" hidden>
-      <div style="font-size:15px"><strong>Arraste a planilha de endereços aqui</strong> ou clique para escolher</div>
-      <div class="nota" style="margin-top:6px">.xlsx ou .csv · o arquivo é lido neste computador e não é enviado para lugar nenhum</div>
-    </label>
+    <div class="home">
+      <div class="home-hero">
+        <div>
+          <h2>Do endereço ao quarteirão, em segundos</h2>
+          <p class="lead">Carregue qualquer lista de endereços da Vigilância em Saúde — notificações, visitas, cadastros — e receba de volta o quarteirão e a zona de cada um, com o grau de confiança.</p>
+        </div>
+        <label class="drop" id="drop">
+          <input type="file" id="arquivo" accept=".xlsx,.csv,.txt" hidden>
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg></span>
+          <div style="font-size:16px"><strong>Arraste a planilha aqui</strong></div>
+          <div class="nota">.xlsx ou .csv — rua, número, bairro e CEP são reconhecidos pelo nome da coluna</div>
+          <span class="btn pri">Escolher arquivo</span>
+        </label>
+        <div class="passos">
+          <div class="passo"><span class="num">1</span><div><b>Carregar</b><span class="nota">Confira as colunas e processe.</span></div></div>
+          <div class="passo"><span class="num">2</span><div><b>Revisar</b><span class="nota">Só os duvidosos, com mapa e Google Maps.</span></div></div>
+          <div class="passo"><span class="num">3</span><div><b>Baixar</b><span class="nota">A planilha volta com quarteirão e zona.</span></div></div>
+        </div>
+      </div>
+      <div class="card consulta">
+        <h2>Consulta rápida</h2>
+        <p class="nota" style="margin:-4px 0 10px">Um endereço só, sem planilha.</p>
+        <div class="linha">
+          <div class="campo" style="flex:3"><label>Endereço</label><input type="text" id="cqRua" placeholder="ex.: Rua Tom Jobim, 51" autocomplete="off"></div>
+          <div class="campo" style="max-width:110px;min-width:90px"><label>Número</label><input type="text" id="cqNum" placeholder="opcional"></div>
+        </div>
+        <div class="linha" style="margin-top:8px">
+          <button class="btn pri" id="cqBuscar">Localizar</button>
+          <a class="btn" id="cqGoogle" target="_blank" rel="noopener" style="text-decoration:none">Ver no Google Maps ↗</a>
+        </div>
+        <div class="res" id="cqRes"><span class="nota">O quarteirão aparece aqui.</span></div>
+        <div class="mini-mapa" id="mapaHome"></div>
+      </div>
+    </div>
+    <div class="faixa-base" id="faixaBase"></div>
+    <div class="privacidade"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+      <div><b>A planilha não sai deste computador.</b> Ela é lida e processada aqui no navegador e some ao fechar a página. Para a base compartilhada vão só rua, número e quarteirão das correções.</div></div>
   </div>
 
   <div id="etapaColunas" class="card oculto">
@@ -897,13 +965,35 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
       </div>
       <div class="card">
         <div class="linha" style="justify-content:space-between;margin-bottom:8px">
-          <h2 style="margin:0">Mapa <span class="nota">clique no quarteirão para escolher</span></h2>
+          <div class="linha" style="gap:8px">
+            <h2 style="margin:0">Mapa</h2>
+            <div class="abas-mapa" role="group" aria-label="Mapas">
+              <button id="vmQuart" aria-pressed="true">Quarteirões</button>
+              <button id="vmGoogle" aria-pressed="false">Google Maps</button>
+              <button id="vmDuplo" aria-pressed="false" title="Os dois lado a lado">Lado a lado</button>
+            </div>
+          </div>
           <div class="linha">
             <input type="text" id="revBuscaQ" class="mono" placeholder="ir ao quarteirão" style="width:140px">
             <label class="nota" style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="chkFundo" checked> fundo OSM</label>
           </div>
         </div>
-        <div class="mapa" id="mapaRev"></div>
+        <div class="gm-painel oculto" id="gmBarra" style="margin-bottom:8px">
+          <div class="linha">
+            <input type="text" id="gmBusca" placeholder="endereço para pesquisar no Google Maps" style="flex:1;min-width:220px">
+            <button class="btn pri" id="gmIr">Pesquisar</button>
+            <a class="btn" id="gmAbrir" target="_blank" rel="noopener" style="text-decoration:none" title="Abrir no Google Maps em outra aba">↗</a>
+          </div>
+          <div class="linha">
+            <input type="text" id="gmCoord" class="mono" placeholder="cole aqui coordenadas ou link do Google Maps (ex.: -22.7612, -47.1543)" style="flex:1;min-width:220px">
+            <button class="btn" id="gmUsar">Achar quarteirão</button>
+          </div>
+          <span class="nota">Para pegar as coordenadas: no Google Maps, clique com o botão direito no imóvel e clique nos números que aparecem (são copiados). Só o endereço digitado vai para o Google, nunca nomes.</span>
+        </div>
+        <div class="mapas" id="mapasWrap">
+          <div id="mapaQuartWrap"><div class="mapa" id="mapaRev"></div></div>
+          <div id="mapaGoogleWrap" class="oculto"><div class="gm-vazio" id="gmVazio">Pesquise um endereço para ver no Google Maps.</div><iframe class="gm-frame oculto" id="gmFrame" title="Google Maps" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+        </div>
         <p class="nota" id="legendaMapa">Pontos: números da rua no CNEFE (cor = quarteirão). Contorno grosso: sugestão.</p>
       </div>
     </div>
@@ -2161,6 +2251,7 @@ function criarMapa(div, aoClicar) {
   }
   const camadaPontos = L.layerGroup().addTo(map);
   const camadaRotulos = L.layerGroup().addTo(map);
+  const camadaMarca = L.layerGroup().addTo(map);
   let destaque = [];
   function rotular() {
     camadaRotulos.clearLayers();
@@ -2203,9 +2294,74 @@ function criarMapa(div, aoClicar) {
       }
       return b;
     },
+    marcar(ll, texto) {
+      camadaMarca.clearLayers();
+      if (!ll) return;
+      L.circleMarker(ll, { radius: 9, color: "#fff", weight: 3, fillColor: "#d93025", fillOpacity: 1, renderer }).bindTooltip(texto || "", { permanent: !!texto, direction: "top", offset: [0, -8] }).addTo(camadaMarca);
+      map.setView(ll, Math.max(map.getZoom(), 18));
+    },
     enquadrar(b, zoomMax) { if (b && b.isValid()) map.fitBounds(b.pad(0.25), { maxZoom: zoomMax || 18 }); },
     irPara(q) { const ps = polyPorQ.get(normQ(q)) || polyPorQ.get(q); if (!ps) return false; const b = L.latLngBounds([]); ps.forEach(p => b.extend(p.getBounds())); map.fitBounds(b.pad(1.2), { maxZoom: 18 }); return true; },
   };
+}
+
+// ------------------------------------------------------------------ ponto → quarteirão / Google Maps
+const KX = 111320 * Math.cos(-22.76 * Math.PI / 180), KY = 110540;
+const POLIGONOS = [];
+for (const [cod, zona, rings] of DADOS.quarteiroes) {
+  if (!/\d/.test(cod)) continue;                        // áreas "(XXXX)" sem número
+  for (const r of rings) {
+    let mnx = 180, mny = 90, mxx = -180, mxy = -90;
+    for (const [x, y] of r[0]) { if (x < mnx) mnx = x; if (x > mxx) mxx = x; if (y < mny) mny = y; if (y > mxy) mxy = y; }
+    POLIGONOS.push({ cod, zona, rings: r, bb: [mnx, mny, mxx, mxy] });
+  }
+}
+function dentroAnel(x, y, anel) {
+  let d = false;
+  for (let i = 0, j = anel.length - 1; i < anel.length; j = i++) {
+    const [xi, yi] = anel[i], [xj, yj] = anel[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) d = !d;
+  }
+  return d;
+}
+function distSegM(px, py, ax, ay, bx, by) {
+  const X = (v) => v * KX, Y = (v) => v * KY;
+  const x = X(px), y = Y(py), x1 = X(ax), y1 = Y(ay), x2 = X(bx), y2 = Y(by);
+  const dx = x2 - x1, dy = y2 - y1, l = dx * dx + dy * dy;
+  let t = l ? ((x - x1) * dx + (y - y1) * dy) / l : 0; t = Math.max(0, Math.min(1, t));
+  return Math.hypot(x - (x1 + t * dx), y - (y1 + t * dy));
+}
+/** Quarteirão que contém o ponto; se o ponto cair na rua, o mais próximo até 30 m. */
+function quarteiraoNoPonto(lat, lon) {
+  let melhor = null;
+  for (const p of POLIGONOS) {
+    const [a, b, c, d] = p.bb, m = 0.0004;
+    if (lon < a - m || lon > c + m || lat < b - m || lat > d + m) continue;
+    if (dentroAnel(lon, lat, p.rings[0]) && !p.rings.slice(1).some(h => dentroAnel(lon, lat, h))) return { q: p.cod, zona: p.zona, dist: 0 };
+    for (const anel of p.rings) for (let i = 1; i < anel.length; i++) {
+      const dm = distSegM(lon, lat, anel[i - 1][0], anel[i - 1][1], anel[i][0], anel[i][1]);
+      if (dm <= 30 && (!melhor || dm < melhor.dist)) melhor = { q: p.cod, zona: p.zona, dist: Math.round(dm) };
+    }
+  }
+  return melhor;
+}
+/** Lê coordenadas coladas: "-22.76, -47.15", link do Google Maps (@lat,lon ou !3d…!4d…), "-22,76 -47,15". */
+function lerCoordenadas(txt) {
+  const t = String(txt || "").trim();
+  let m = t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/@(-?\d+\.\d+),\s*(-?\d+\.\d+)/) || t.match(/[?&](?:q|ll|query)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/)
+    || t.match(/(-?\d{1,2}\.\d+)\s*[,;\s]\s*(-?\d{1,3}\.\d+)/) || t.match(/(-?\d{1,2},\d+)\s*[;\s]\s*(-?\d{1,3},\d+)/);
+  if (!m) return null;
+  const lat = parseFloat(m[1].replace(",", ".")), lon = parseFloat(m[2].replace(",", "."));
+  if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  return { lat, lon };
+}
+const urlGoogle = (q, embed) => "https://maps.google.com/maps?q=" + encodeURIComponent(q) + "&hl=pt-BR&z=17" + (embed ? "&output=embed" : "");
+function consultaGoogle(r) {
+  const res = r.res, ent = r.ent;
+  const rua = (ESC && ESC.nome) || res.ruaLimpa || String(ent.rua || "");
+  const num = res.numero != null ? res.numero : "";
+  const cidade = final(r).conf === "OUTRA CIDADE" && !/^outro município/.test(final(r).mun) ? final(r).mun : "Paulínia";
+  return [rua + (num ? ", " + num : ""), String(ent.bairro || "").trim(), cidade + " - SP"].filter(Boolean).join(", ");
 }
 
 // ------------------------------------------------------------------ REVISAR
@@ -2214,8 +2370,51 @@ function garantirMapaRev() {
   if (mapaRev) return;
   mapaRev = criarMapa("mapaRev", q => { $("#revQ").value = q; validarQ(); });
   $("#chkFundo").checked = mapaRev.usandoFundo();
+  let modo = "quart"; try { modo = localStorage.getItem("qe-modo-mapa") || "quart"; } catch (e) {}
+  definirModoMapa(modo);
   $("#chkFundo").onchange = e => mapaRev.fundo(e.target.checked);
 }
+let MODO_MAPA = "quart", gmUltima = "";
+function definirModoMapa(m) {
+  MODO_MAPA = m; try { localStorage.setItem("qe-modo-mapa", m); } catch (e) {}
+  $("#vmQuart").setAttribute("aria-pressed", m === "quart"); $("#vmGoogle").setAttribute("aria-pressed", m === "google"); $("#vmDuplo").setAttribute("aria-pressed", m === "duplo");
+  $("#mapaQuartWrap").classList.toggle("oculto", m === "google");
+  $("#mapaGoogleWrap").classList.toggle("oculto", m === "quart");
+  $("#gmBarra").classList.toggle("oculto", m === "quart");
+  $("#mapasWrap").classList.toggle("duplo", m === "duplo");
+  if (m !== "quart" && $("#gmBusca").value && gmUltima !== $("#gmBusca").value) carregarGoogle();
+  setTimeout(() => mapaRev && mapaRev.map.invalidateSize(), 60);
+}
+function carregarGoogle() {
+  const q = $("#gmBusca").value.trim(); if (!q) return;
+  gmUltima = q;
+  $("#gmFrame").src = urlGoogle(q, true);
+  $("#gmFrame").classList.remove("oculto"); $("#gmVazio").classList.add("oculto");
+}
+$("#vmQuart").onclick = () => definirModoMapa("quart");
+$("#vmGoogle").onclick = () => definirModoMapa("google");
+$("#vmDuplo").onclick = () => definirModoMapa("duplo");
+$("#gmIr").onclick = carregarGoogle;
+$("#gmBusca").addEventListener("keydown", e => { if (e.key === "Enter") carregarGoogle(); });
+$("#gmBusca").addEventListener("input", () => { $("#gmAbrir").href = urlGoogle($("#gmBusca").value, false); });
+function usarCoordenadas() {
+  const c = lerCoordenadas($("#gmCoord").value);
+  if (!c) { msg("#revMsg", "erro", "Não reconheci as coordenadas. Cole no formato -22.7612, -47.1543 ou o link do Google Maps."); return; }
+  const achado = quarteiraoNoPonto(c.lat, c.lon);
+  if (MODO_MAPA === "google") definirModoMapa("duplo");
+  if (!achado) {
+    mapaRev.marcar([c.lat, c.lon], "ponto colado");
+    msg("#revMsg", "aviso", "O ponto não cai em nenhum quarteirão numerado de Paulínia. Se for de outro município, use “Marcar como outra cidade”.");
+    return;
+  }
+  $("#revQ").value = achado.q; validarQ();
+  mapaRev.marcar([c.lat, c.lon], achado.q);
+  msg("#revMsg", "ok", `O ponto cai no quarteirão <b class="mono">${esc(achado.q)}</b>${achado.zona ? " · " + esc(achado.zona) : ""}${achado.dist ? ` (na rua, a ${achado.dist} m)` : ""}. Confira e salve.`);
+}
+$("#gmUsar").onclick = usarCoordenadas;
+$("#gmCoord").addEventListener("keydown", e => { if (e.key === "Enter") usarCoordenadas(); });
+$("#gmCoord").addEventListener("paste", () => setTimeout(usarCoordenadas, 30));
+
 function filtroRev(r) {
   const f = REV.filtro;
   if (f === "todos") return true;
@@ -2305,6 +2504,8 @@ function renderRevisao() {
   if (!$("#listaCidades").children.length) $("#listaCidades").innerHTML = MOTOR.cidades().map(c => `<option value="${esc(c)}">`).join("");
   $("#revCidade").value = f.conf === "OUTRA CIDADE" && !/^outro município/.test(f.mun) ? f.mun : "";
   avisoQ = null; msg("#revMsg", "", "");
+  $("#gmBusca").value = consultaGoogle(r); $("#gmAbrir").href = urlGoogle($("#gmBusca").value, false); $("#gmCoord").value = "";
+  if (MODO_MAPA !== "quart" && pendente(r)) carregarGoogle();
   renderSugestoes(ESC ? "" : $("#revRua").value, r);
   $("#revAlts").innerHTML = (res.alternativas || []).filter(q => !(cond && (cond.quarteiroes || []).includes(q))).map(q => `<button class="btn peq mono" data-q="${esc(q)}">${esc(q)}</button>`).join("");
   $$("#revAlts [data-q]").forEach(b => b.onclick = () => { $("#revQ").value = b.dataset.q; validarQ(); mapaRev.irPara(b.dataset.q); });
@@ -2312,6 +2513,7 @@ function renderRevisao() {
 }
 function atualizarMapaRev(r) {
   const res = r.res; const f = final(r);
+  mapaRev.marcar(null);
   const chave = ESC ? ESC.chave : res.chaveRua;
   const regs = chave ? MOTOR.numerosDaRua(chave) : [];
   const apr = chave ? [...MOTOR.aprendidosDaRua(chave)].map(([n, q]) => ({ n, q, lat: null })) : [];
@@ -2561,6 +2763,7 @@ $("#btnSair").onclick = () => Sync.sair();
 $("#btnSync").onclick = async () => { msg("#lgMsg", "aviso", "Sincronizando…"); await Sync.sincronizar(); msg("#lgMsg", Sync.estado === "ok" ? "ok" : "aviso", Sync.estado === "ok" ? "Base em dia." : esc(Sync._erro || Sync.estado)); };
 
 function renderBase() {
+  if ($("#faixaBase")) renderFaixaBase();
   const corr = Object.values(Sync.apr.correcoes).filter(c => c.quarteirao).length;
   const e = MOTOR.estat();
   $("#baseEstat").innerHTML = [
@@ -2707,6 +2910,49 @@ $("#impAnalisar").onclick = async () => {
     msg("#impMsg", "ok", `${fmt(n)} endereços importados como “${esc(fonte)}”.${Sync.sessao ? " Enviando para a base compartilhada." : " Entre com seu login para enviar à base compartilhada."}`);
   };
 };
+
+// ------------------------------------------------------------------ página inicial
+let mapaHome = null;
+function renderFaixaBase() {
+  const corr = Object.values(Sync.apr.correcoes).filter(c => c.quarteirao).length;
+  const itens = [
+    [fmt(new Set(DADOS.quarteiroes.map(q => q[0]).filter(c => /\d/.test(c))).size), "quarteirões na malha"],
+    [fmt(DADOS.ruas.length), "ruas com numeração (CNEFE)"],
+    [fmt(corr), "correções aprendidas"],
+    [fmt(MOTOR.condominios().length), "condomínios mapeados"],
+  ];
+  $("#faixaBase").innerHTML = itens.map(([v, r]) => `<div class="k"><div class="v">${v}</div><div class="r">${r}</div></div>`).join("");
+}
+function consultaRapida() {
+  const txt = $("#cqRua").value.trim(), num = $("#cqNum").value.trim();
+  $("#cqGoogle").href = urlGoogle([txt + (num ? ", " + num : ""), "Paulínia - SP"].filter(Boolean).join(", "), false);
+  if (!txt) return;
+  if (!mapaHome) mapaHome = criarMapa("mapaHome", null);
+  const c = lerCoordenadas(txt);
+  if (c && /^[-\d.,;\s]+$|google|maps|goo\.gl/i.test(txt)) {
+    const a = quarteiraoNoPonto(c.lat, c.lon);
+    mapaHome.destacar(a ? a.q : null, []); mapaHome.marcar([c.lat, c.lon], a ? a.q : "fora da malha");
+    $("#cqRes").innerHTML = a ? `<div class="linha" style="justify-content:space-between"><span class="q">${esc(a.q)}</span><span class="tag ALTA">PONTO</span></div><div class="nota">${esc(a.zona)} · pelas coordenadas${a.dist ? `, a ${a.dist} m (na rua)` : ""}</div>`
+      : `<span class="nota">O ponto não cai em nenhum quarteirão numerado de Paulínia.</span>`;
+    return;
+  }
+  const r = MOTOR.processar({ rua: txt, numero: num });
+  const cls = confCls(r.confianca);
+  $("#cqRes").innerHTML = `<div class="linha" style="justify-content:space-between"><span class="q">${esc(r.quarteirao || "—")}</span><span class="tag ${cls}">${esc(r.confianca)}</span></div>
+    <div class="nota">${r.zona ? esc(r.zona) + " · " : ""}${esc(r.ruaEncontrada || "rua não encontrada")}${r.numero != null ? ", " + r.numero : ""} · ${esc(r.metodo)}</div>
+    ${r.obs ? `<div class="nota" style="margin-top:4px">${esc(r.obs)}</div>` : ""}
+    ${!r.quarteirao && r.confianca !== "OUTRA CIDADE" ? `<div class="nota" style="margin-top:4px">Não achou? Abra no Google Maps, copie as coordenadas do imóvel (botão direito) e cole no campo Endereço.</div>` : ""}`;
+  const regs = r.chaveRua ? MOTOR.numerosDaRua(r.chaveRua) : [];
+  const b1 = mapaHome.pontos(regs, r.numero, null);
+  const b2 = mapaHome.destacar(r.quarteirao, r.alternativas || []);
+  mapaHome.marcar(r.lat ? [r.lat, r.lon] : null);
+  if (r.lat) mapaHome.map.setView([r.lat, r.lon], 18); else if (b2.isValid()) mapaHome.enquadrar(b2, 18); else if (b1.isValid()) mapaHome.enquadrar(b1, 16);
+}
+$("#cqBuscar").onclick = consultaRapida;
+["#cqRua", "#cqNum"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") consultaRapida(); }));
+$("#cqRua").addEventListener("input", () => { $("#cqGoogle").href = urlGoogle([$("#cqRua").value.trim() + ($("#cqNum").value.trim() ? ", " + $("#cqNum").value.trim() : ""), "Paulínia - SP"].join(", "), false); });
+$("#cqGoogle").href = urlGoogle("Paulínia - SP", false);
+setTimeout(() => { if (!mapaHome && abaAtual === "processar") { mapaHome = criarMapa("mapaHome", null); mapaHome.map.setView([-22.765, -47.155], 13); } }, 200);
 
 // ------------------------------------------------------------------ início
 $("#nCond").textContent = MOTOR.condominios().length;
