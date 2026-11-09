@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="versao" content="09/11/2026 15:42">
+<meta name="versao" content="09/11/2026 15:47">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quarteirão por Endereço</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -1333,7 +1333,7 @@ a.btn{color:var(--texto);text-decoration:none;display:inline-flex;align-items:ce
   </div>
 </section>
 </main>
-<footer>Base: <span id="rodape"></span> · versão do sistema <span class="mono">09/11/2026 15:42</span></footer>
+<footer>Base: <span id="rodape"></span> · versão do sistema <span class="mono">09/11/2026 15:47</span></footer>
 </div>
 </div>
 <div id="avisoVersao" class="oculto" style="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:2000;background:var(--texto);color:var(--painel);padding:10px 14px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:12px;align-items:center;font-size:13px">Nova versão do sistema disponível.<button class="btn peq" id="btnAtualizar">Atualizar agora</button></div>
@@ -2574,6 +2574,10 @@ function criarMapa(div, aoClicar) {
       polyPorQ.get(cod).push(p); todos.push(p);
     }
   }
+  // pontos do IBGE e marcador ficam numa camada própria, acima dos quarteirões,
+  // para que o mouse sobre o ponto mostre o número da casa e não o quarteirão
+  map.createPane("pontos").style.zIndex = 450;
+  const rPontos = L.svg({ pane: "pontos" });
   const camadaPontos = L.layerGroup().addTo(map);
   const camadaRotulos = L.layerGroup().addTo(map);
   const camadaMarca = L.layerGroup().addTo(map);
@@ -2609,12 +2613,12 @@ function criarMapa(div, aoClicar) {
       for (const r of regs) {
         if (r.lat == null) continue;
         const ll = [r.lat, r.lon];
-        L.circleMarker(ll, { radius: 4, color: corQ(r.q), weight: 1, fillColor: corQ(r.q), fillOpacity: 0.85, renderer })
+        L.circleMarker(ll, { radius: 5, color: "#fff", weight: 1, fillColor: corQ(r.q), fillOpacity: 0.95, renderer: rPontos, pane: "pontos" })
           .bindTooltip(`nº <b class="mono">${r.n || "s/n"}</b> → <span class="mono">${esc(r.q)}</span>`, { direction: "top" }).addTo(camadaPontos);
         b.extend(ll);
       }
       if (extra) {
-        L.circleMarker(extra, { radius: 8, color: "#111", weight: 2, fillColor: "#ffd400", fillOpacity: 1, renderer }).bindTooltip("posição estimada", { permanent: false }).addTo(camadaPontos);
+        L.circleMarker(extra, { radius: 8, color: "#111", weight: 2, fillColor: "#ffd400", fillOpacity: 1, renderer: rPontos, pane: "pontos" }).bindTooltip("posição estimada", { permanent: false }).addTo(camadaPontos);
         b.extend(extra);
       }
       return b;
@@ -2622,7 +2626,7 @@ function criarMapa(div, aoClicar) {
     marcar(ll, texto) {
       camadaMarca.clearLayers();
       if (!ll) return;
-      L.circleMarker(ll, { radius: 9, color: "#fff", weight: 3, fillColor: "#d93025", fillOpacity: 1, renderer }).bindTooltip(texto || "", { permanent: !!texto, direction: "top", offset: [0, -8] }).addTo(camadaMarca);
+      L.circleMarker(ll, { radius: 9, color: "#fff", weight: 3, fillColor: "#d93025", fillOpacity: 1, renderer: rPontos, pane: "pontos" }).bindTooltip(texto || "", { permanent: !!texto, direction: "top", offset: [0, -8] }).addTo(camadaMarca);
       map.setView(ll, Math.max(map.getZoom(), 18));
     },
     enquadrar(b, zoomMax) { if (b && b.isValid()) map.fitBounds(b.pad(0.25), { maxZoom: zoomMax || 18 }); },
@@ -3350,7 +3354,7 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
   navigator.serviceWorker.addEventListener("controllerchange", () => { if (tinhaControle) $("#avisoVersao").classList.remove("oculto"); });
 }
 // Confere se há versão mais nova publicada (independe do cache do navegador)
-const VERSAO_APP = "09/11/2026 15:42";
+const VERSAO_APP = "09/11/2026 15:47";
 async function checarVersao() {
   if (!location.protocol.startsWith("http")) return;
   try {

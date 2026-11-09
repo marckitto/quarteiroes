@@ -650,6 +650,10 @@ function criarMapa(div, aoClicar) {
       polyPorQ.get(cod).push(p); todos.push(p);
     }
   }
+  // pontos do IBGE e marcador ficam numa camada própria, acima dos quarteirões,
+  // para que o mouse sobre o ponto mostre o número da casa e não o quarteirão
+  map.createPane("pontos").style.zIndex = 450;
+  const rPontos = L.svg({ pane: "pontos" });
   const camadaPontos = L.layerGroup().addTo(map);
   const camadaRotulos = L.layerGroup().addTo(map);
   const camadaMarca = L.layerGroup().addTo(map);
@@ -685,12 +689,12 @@ function criarMapa(div, aoClicar) {
       for (const r of regs) {
         if (r.lat == null) continue;
         const ll = [r.lat, r.lon];
-        L.circleMarker(ll, { radius: 4, color: corQ(r.q), weight: 1, fillColor: corQ(r.q), fillOpacity: 0.85, renderer })
+        L.circleMarker(ll, { radius: 5, color: "#fff", weight: 1, fillColor: corQ(r.q), fillOpacity: 0.95, renderer: rPontos, pane: "pontos" })
           .bindTooltip(`nº <b class="mono">${r.n || "s/n"}</b> → <span class="mono">${esc(r.q)}</span>`, { direction: "top" }).addTo(camadaPontos);
         b.extend(ll);
       }
       if (extra) {
-        L.circleMarker(extra, { radius: 8, color: "#111", weight: 2, fillColor: "#ffd400", fillOpacity: 1, renderer }).bindTooltip("posição estimada", { permanent: false }).addTo(camadaPontos);
+        L.circleMarker(extra, { radius: 8, color: "#111", weight: 2, fillColor: "#ffd400", fillOpacity: 1, renderer: rPontos, pane: "pontos" }).bindTooltip("posição estimada", { permanent: false }).addTo(camadaPontos);
         b.extend(extra);
       }
       return b;
@@ -698,7 +702,7 @@ function criarMapa(div, aoClicar) {
     marcar(ll, texto) {
       camadaMarca.clearLayers();
       if (!ll) return;
-      L.circleMarker(ll, { radius: 9, color: "#fff", weight: 3, fillColor: "#d93025", fillOpacity: 1, renderer }).bindTooltip(texto || "", { permanent: !!texto, direction: "top", offset: [0, -8] }).addTo(camadaMarca);
+      L.circleMarker(ll, { radius: 9, color: "#fff", weight: 3, fillColor: "#d93025", fillOpacity: 1, renderer: rPontos, pane: "pontos" }).bindTooltip(texto || "", { permanent: !!texto, direction: "top", offset: [0, -8] }).addTo(camadaMarca);
       map.setView(ll, Math.max(map.getZoom(), 18));
     },
     enquadrar(b, zoomMax) { if (b && b.isValid()) map.fitBounds(b.pad(0.25), { maxZoom: zoomMax || 18 }); },
