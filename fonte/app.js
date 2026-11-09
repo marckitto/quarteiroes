@@ -691,8 +691,12 @@ function lerCoordenadas(txt) {
 const urlGoogle = (q, embed) => "https://maps.google.com/maps?q=" + encodeURIComponent(q) + "&hl=pt-BR&z=17" + (embed ? "&output=embed" : "");
 function consultaGoogle(r) {
   const res = r.res, ent = r.ent;
-  const rua = (ESC && ESC.nome) || res.ruaLimpa || String(ent.rua || "");
-  const num = res.numero != null ? res.numero : "";
+  const rua = (ESC && ESC.nome) || ($("#revRua") && $("#revRua").value.trim()) || res.ruaLimpa || String(ent.rua || "");
+  // número: o que está no campo da revisão; senão o lido pelo motor; senão o que der para tirar do texto original.
+  // A letra (33A) fica de fora: o Google erra com ela e o lote é o mesmo do 33.
+  let num = lerNumeroDigitado($("#revNum") ? $("#revNum").value : "").n;
+  if (!num && res.numero != null) num = res.numero;
+  if (!num) { const sp = MotorQuarteirao.separarRuaNumero(ent.rua, ent.numero); num = sp.n; }
   const cidade = final(r).conf === "OUTRA CIDADE" && !/^outro município/.test(final(r).mun) ? final(r).mun : "Paulínia";
   return [rua + (num ? ", " + num : ""), String(ent.bairro || "").trim(), cidade + " - SP"].filter(Boolean).join(", ");
 }
@@ -840,11 +844,12 @@ function renderRevisao() {
   $("#revRuaNova").checked = !!(r.manual && r.manual.nova);
   $("#revNum").value = r.manual ? (r.manual.numero ? r.manual.numero + (r.manual.sufixo || "") : "") : (res.numero != null ? res.numero + (res.sufixo || "") : "");
   $("#revQ").value = f.q || "";
+  $("#gmBusca").value = consultaGoogle(r); $("#gmAbrir").href = urlGoogle($("#gmBusca").value, false); $("#gmCoord").value = "";
+  if (MODO_MAPA !== "quart") carregarGoogle();
   if (!$("#listaCidades").children.length) $("#listaCidades").innerHTML = MOTOR.cidades().map(c => `<option value="${esc(c)}">`).join("");
   $("#revCidade").value = f.conf === "OUTRA CIDADE" && !/^outro município/.test(f.mun) ? f.mun : "";
   avisoQ = null; msg("#revMsg", "", "");
-  $("#gmBusca").value = consultaGoogle(r); $("#gmAbrir").href = urlGoogle($("#gmBusca").value, false); $("#gmCoord").value = "";
-  if (MODO_MAPA !== "quart" && pendente(r)) carregarGoogle();
+
   renderSugestoes(ESC ? "" : $("#revRua").value, r);
   $("#revAlts").innerHTML = (res.alternativas || []).filter(q => !(cond && (cond.quarteiroes || []).includes(q))).map(q => `<button class="btn peq mono" data-q="${esc(q)}">${esc(q)}</button>`).join("");
   $$("#revAlts [data-q]").forEach(b => b.onclick = () => { $("#revQ").value = b.dataset.q; validarQ(); mapaRev.irPara(b.dataset.q); });
@@ -879,11 +884,21 @@ function renderSugestoes(texto, r) {
   $("#revSug").style.display = lista.length ? "" : "none";
   $$("#revSug button").forEach(b => b.onclick = () => {
     ESC = { chave: b.dataset.k, nome: MOTOR.nomeRua(b.dataset.k) };
+    setTimeout(atualizarBuscaGoogle, 0);
     $("#revRua").value = ESC.nome; $("#revRuaNova").checked = false; $("#revSug").style.display = "none";
     atualizarMapaRev(P.rows[REV.fila[REV.pos]]);
   });
 }
 let tSug = null;
+// a busca do Google acompanha o que for corrigido na rua e no número
+let tGm = null;
+function atualizarBuscaGoogle() {
+  const r = P.rows[REV.fila[REV.pos]]; if (!r) return;
+  $("#gmBusca").value = consultaGoogle(r); $("#gmAbrir").href = urlGoogle($("#gmBusca").value, false);
+  if (MODO_MAPA !== "quart" && gmUltima) { clearTimeout(tGm); tGm = setTimeout(carregarGoogle, 700); }
+}
+$("#revNum").addEventListener("input", atualizarBuscaGoogle);
+$("#revRua").addEventListener("change", atualizarBuscaGoogle);
 $("#revRua").addEventListener("input", () => { ESC = null; clearTimeout(tSug); tSug = setTimeout(() => renderSugestoes($("#revRua").value, P.rows[REV.fila[REV.pos]]), 150); });
 $("#revRuaNova").onchange = e => { if (e.target.checked) { ESC = null; $("#revSug").style.display = "none"; } };
 $("#revBuscaQ").addEventListener("keydown", e => { if (e.key === "Enter") { if (!mapaRev.irPara(e.target.value)) { e.target.style.borderColor = "var(--baixa)"; setTimeout(() => e.target.style.borderColor = "", 1200); } } });
