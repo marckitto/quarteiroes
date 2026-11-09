@@ -149,6 +149,33 @@ dl.ficha dt{color:var(--suave)} dl.ficha dd{margin:0}
 .barra i{display:block;height:100%;background:var(--realce);width:0}
 .alts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .opc{display:flex;gap:8px;align-items:flex-start;margin:4px 0;cursor:pointer}.opc input{margin-top:3px;flex:none}
+/* ---- etapa de colunas */
+.arq-cab{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;padding:12px 16px}
+.arq-ico{width:40px;height:40px;border-radius:10px;background:var(--realce-bg);color:var(--realce);display:grid;place-items:center;flex:none}
+.arq-ico svg{width:22px;height:22px}
+.arq-info{flex:1;min-width:200px}
+.arq-nome{font-weight:650;font-size:15px;overflow-wrap:anywhere}
+.arq-cab select{min-width:180px}
+.mapear{display:grid;grid-template-columns:minmax(380px,1fr) minmax(420px,1.15fr);gap:16px;align-items:start}
+@media (max-width:1100px){.mapear{grid-template-columns:1fr}}
+.mgrupo{font-size:11.5px;font-weight:650;letter-spacing:.5px;text-transform:uppercase;color:var(--suave);margin:14px 0 4px;padding-top:10px;border-top:1px solid var(--borda)}
+.mgrupo:first-of-type{border-top:0;padding-top:0}
+.mcol{display:grid;grid-template-columns:minmax(140px,180px) minmax(160px,1fr);gap:4px 14px;align-items:start;padding:7px 0}
+.mcol-t{padding-top:6px}
+.mcol-c{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mcol-t b{display:block;font-size:13px;font-weight:600}
+.mcol-t .nota{font-size:11.5px}
+.mcol-ex{font-size:12px;color:var(--fraco);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mcol-ex:empty{display:none}
+.mcol-ex b{color:var(--suave);font-weight:500}
+.mcol.ok select{border-color:var(--realce);background:var(--realce-bg)}
+.mcol.alerta select{border-color:var(--media)}
+.mcol.alerta .mcol-ex{color:var(--media)}
+@media (max-width:560px){.mcol{grid-template-columns:1fr}}
+.previa-card table td{white-space:nowrap}
+.previa-card td.end{white-space:normal;min-width:180px}
+.barra-acao{position:sticky;bottom:0;z-index:500;display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-top:14px;padding:12px 16px;background:var(--painel);border:1px solid var(--borda);border-radius:var(--raio);box-shadow:0 -4px 16px rgba(0,0,0,.06)}
+.barra-acao .btn.pri{padding:9px 18px}
 footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
 </style>
 </head>
@@ -213,24 +240,39 @@ footer{color:var(--fraco);font-size:12px;text-align:center;padding:10px}
       <div><b>A planilha não sai deste computador.</b> Ela é lida e processada aqui no navegador e some ao fechar a página. Para a base compartilhada vão só rua, número e quarteirão das correções.</div></div>
   </div>
 
-  <div id="etapaColunas" class="card oculto">
-    <h2 id="tituloArquivo">Colunas</h2>
-    <div class="linha" id="linhaAba"></div>
-    <div class="linha" style="margin-top:10px">
-      <div class="campo"><label>Rua / logradouro *</label><select id="colRua"></select></div>
-      <div class="campo"><label>Número <span class="nota">(se vier junto com a rua: “— nenhuma —”)</span></label><select id="colNum"></select></div>
-      <div class="campo"><label>Complemento</label><select id="colComp"></select></div>
-      <div class="campo"><label>Bairro</label><select id="colBairro"></select></div>
-      <div class="campo"><label>CEP</label><select id="colCep"></select></div>
-      <div class="campo"><label>Município</label><select id="colMun"></select></div>
-    </div>
-    <div class="esp"></div>
-    <div class="tabela-wrap" style="max-height:220px"><table id="previa"></table></div>
-    <div class="esp"></div>
-    <div class="linha">
-      <button class="btn pri" id="btnProcessar">Processar endereços</button>
+  <div id="etapaColunas" class="oculto">
+    <div class="card arq-cab">
+      <span class="arq-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg></span>
+      <div class="arq-info"><div id="tituloArquivo" class="arq-nome"></div><div class="nota" id="arqResumo"></div></div>
+      <div id="linhaAba"></div>
       <button class="btn" id="btnTrocar">Trocar arquivo</button>
-      <div style="flex:1;max-width:320px" class="oculto" id="progWrap"><div class="barra"><i id="prog"></i></div></div>
+    </div>
+    <div class="mapear">
+      <div class="card">
+        <h2>Onde está o endereço nesta planilha?</h2>
+        <p class="nota" style="margin:-4px 0 6px">As colunas foram reconhecidas pelo nome e pelo conteúdo. Confira o exemplo de cada uma.</p>
+        <div class="mgrupo">Endereço</div>
+          <div class="mcol" id="mc-colRua"><div class="mcol-t"><b>Rua / logradouro</b><span class="nota">obrigatório · pode trazer o número junto</span></div><div class="mcol-c"><select id="colRua"></select><div class="mcol-ex" id="ex-colRua"></div></div></div>
+          <div class="mcol" id="mc-colNum"><div class="mcol-t"><b>Número</b><span class="nota">“— nenhuma —” se vier junto com a rua</span></div><div class="mcol-c"><select id="colNum"></select><div class="mcol-ex" id="ex-colNum"></div></div></div>
+          <div class="mcol" id="mc-colComp"><div class="mcol-t"><b>Complemento</b><span class="nota">casa, bloco, apto…</span></div><div class="mcol-c"><select id="colComp"></select><div class="mcol-ex" id="ex-colComp"></div></div></div>
+        <div class="mgrupo">Ajudam a confirmar</div>
+          <div class="mcol" id="mc-colBairro"><div class="mcol-t"><b>Bairro</b><span class="nota"></span></div><div class="mcol-c"><select id="colBairro"></select><div class="mcol-ex" id="ex-colBairro"></div></div></div>
+          <div class="mcol" id="mc-colCep"><div class="mcol-t"><b>CEP</b><span class="nota"></span></div><div class="mcol-c"><select id="colCep"></select><div class="mcol-ex" id="ex-colCep"></div></div></div>
+          <div class="mcol" id="mc-colMun"><div class="mcol-t"><b>Município</b><span class="nota">identifica endereços de fora</span></div><div class="mcol-c"><select id="colMun"></select><div class="mcol-ex" id="ex-colMun"></div></div></div>
+        <div class="mgrupo">Coordenadas <span class="nota" style="text-transform:none;letter-spacing:0;font-weight:400">opcional · se existirem, o quarteirão sai direto do ponto</span></div>
+          <div class="mcol" id="mc-colLat"><div class="mcol-t"><b>Latitude</b><span class="nota">ex.: -22.7612</span></div><div class="mcol-c"><select id="colLat"></select><div class="mcol-ex" id="ex-colLat"></div></div></div>
+          <div class="mcol" id="mc-colLon"><div class="mcol-t"><b>Longitude</b><span class="nota">ex.: -47.1543</span></div><div class="mcol-c"><select id="colLon"></select><div class="mcol-ex" id="ex-colLon"></div></div></div>
+      </div>
+      <div class="card previa-card">
+        <div class="linha" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">Prévia do resultado</h2><span class="nota" id="previaResumo"></span></div>
+        <p class="nota" style="margin:0 0 8px">Primeiras linhas, como o sistema está lendo com as colunas escolhidas.</p>
+        <div class="tabela-wrap" style="max-height:none"><table id="previa"></table></div>
+      </div>
+    </div>
+    <div class="barra-acao">
+      <div style="flex:1;max-width:360px" class="oculto" id="progWrap"><div class="barra"><i id="prog"></i></div></div>
+      <span class="nota" id="acaoResumo"></span>
+      <button class="btn pri" id="btnProcessar">Processar endereços</button>
     </div>
   </div>
 

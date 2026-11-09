@@ -406,7 +406,7 @@ let REV = { fila: [], pos: 0, filtro: "pend" };
 
 function aplicarAprendizado(reprocessar) {
   MOTOR.reindexar(Sync.paraMotor());
-  if (reprocessar && P.rows.length) { for (const r of P.rows) r.res = MOTOR.processar(r.ent); renderResultado(); if (abaAtual === "revisar") renderRevisao(); }
+  if (reprocessar && P.rows.length) { for (const r of P.rows) r.res = processarLinha(r.orig, P.cols).res; renderResultado(); if (abaAtual === "revisar") renderRevisao(); }
   renderBase();
   $("#nCond").textContent = MOTOR.condominios().length;
   if (abaAtual === "condominios") renderCondList();
@@ -449,17 +449,39 @@ const PALAVRAS = {
   bairro: ["BAIRRO", "LOCALIDADE"],
   cep: ["CEP"],
   mun: ["MUNIC", "CIDADE", "MN RESI", "MUN RES"],
+  lat: ["LATITUDE", "LAT"],
+  lon: ["LONGITUDE", "LONG", "LON", "LNG"],
 };
-function detectar(cab, tipo) {
+const numDec = v => { const x = parseFloat(String(v == null ? "" : v).trim().replace(",", ".")); return isFinite(x) ? x : null; };
+// o conteúdo da coluna combina com o tipo? (evita pegar "GAT05" como número de casa)
+function conteudoBate(tipo, valores) {
+  const v = valores.map(x => String(x == null ? "" : x).trim()).filter(Boolean);
+  if (!v.length) return true;
+  const frac = f => v.filter(f).length / v.length;
+  if (tipo === "num") return frac(x => /^(N[º°O]?\.?\s*)?\d/i.test(x) || /^S\s*\/?\s*N/i.test(x)) >= 0.6;
+  if (tipo === "rua") return frac(x => /[A-Za-zÀ-ú]{3}/.test(x)) >= 0.6;
+  if (tipo === "cep") return frac(x => /^\d{5}-?\d{3}$|^\d{7,8}(\.0)?$/.test(x)) >= 0.6;
+  if (tipo === "lat") return frac(x => { const n = numDec(x); return n !== null && n < -5 && n > -35; }) >= 0.6;
+  if (tipo === "lon") return frac(x => { const n = numDec(x); return n !== null && n < -30 && n > -75; }) >= 0.6;
+  return true;
+}
+function detectar(cab, tipo, linhas) {
   const norm = cab.map(c => MotorQuarteirao.textoBasico(c));
   for (let i = 0; i < norm.length; i++) {
     const c = norm[i], toks = c.split(" ");
+    if (tipo === "lat" || tipo === "lon") {
+      const ok = PALAVRAS[tipo].some(p => toks.includes(p) || c.startsWith(p));
+      if (ok && (!linhas || conteudoBate(tipo, linhas.slice(0, 50).map(l => l[i])))) return i;
+      continue;
+    }
     let bate = PALAVRAS[tipo].some(p => c.includes(p));
     if (tipo === "num" && (toks.includes("N") || toks.includes("NO") || toks.includes("NU"))) bate = bate || toks.length <= 2 && !c.includes("BAIRRO") && !c.includes("LOGR") && !c.includes("NOME");
     if (!bate) continue;
     if (tipo === "num" && /CEP|TEL|NOTIF|CPF|CNS|SUS|BAIRRO|FONE|CEL|PRONT|SINAN|IDADE/.test(c)) continue;
     if (tipo === "rua" && /NUM|COMPL|BAIRRO|CEP/.test(c) && !c.includes("LOGR")) continue;
     if (tipo === "rua" && c.includes("COMPL")) continue;
+    if (tipo === "rua" && /LAT|LONG/.test(c)) continue;
+    if (linhas && !conteudoBate(tipo, linhas.slice(0, 50).map(l => l[i]))) continue;
     return i;
   }
   return -1;
@@ -470,6 +492,7 @@ async function abrirArquivo(f) {
     await carregarAba();
   } catch (e) { alert("Não consegui ler o arquivo: " + e.message); }
 }
+const COLS = [["rua", "colRua"], ["num", "colNum"], ["comp", "colComp"], ["bairro", "colBairro"], ["cep", "colCep"], ["mun", "colMun"], ["lat", "colLat"], ["lon", "colLon"]];
 async function carregarAba() {
   const todas = await P.leitor.lerAba(P.aba);
   P.cab = (todas[0] || []).map((c, i) => String(c || `Coluna ${i + 1}`).trim());
@@ -477,18 +500,60 @@ async function carregarAba() {
   $("#etapaArquivo").classList.add("oculto");
   $("#etapaResultado").classList.add("oculto");
   $("#etapaColunas").classList.remove("oculto");
-  $("#tituloArquivo").innerHTML = `${esc(P.arquivo.name)} <span class="nota mono">${fmt(P.linhas.length)} linhas</span>`;
-  $("#linhaAba").innerHTML = P.leitor.abas.length > 1 ? `<div class="campo" style="max-width:260px"><label>Aba</label><select id="selAba">${P.leitor.abas.map((a, i) => `<option value="${i}" ${i === P.aba ? "selected" : ""}>${esc(a)}</option>`).join("")}</select></div>` : "";
+  $("#tituloArquivo").textContent = P.arquivo.name;
+  $("#arqResumo").innerHTML = `<span class="mono">${fmt(P.linhas.length)}</span> linhas · <span class="mono">${fmt(P.cab.length)}</span> colunas`;
+  $("#linhaAba").innerHTML = P.leitor.abas.length > 1 ? `<select id="selAba" title="Aba da planilha">${P.leitor.abas.map((a, i) => `<option value="${i}" ${i === P.aba ? "selected" : ""}>Aba: ${esc(a)}</option>`).join("")}</select>` : "";
   if ($("#selAba")) $("#selAba").onchange = e => { P.aba = +e.target.value; carregarAba(); };
   const opts = (sel) => `<option value="-1">— nenhuma —</option>` + P.cab.map((c, i) => `<option value="${i}" ${i === sel ? "selected" : ""}>${esc(c)}</option>`).join("");
-  $("#colRua").innerHTML = opts(detectar(P.cab, "rua"));
-  $("#colNum").innerHTML = opts(detectar(P.cab, "num"));
-  $("#colComp").innerHTML = opts(detectar(P.cab, "comp"));
-  $("#colBairro").innerHTML = opts(detectar(P.cab, "bairro"));
-  $("#colCep").innerHTML = opts(detectar(P.cab, "cep"));
-  $("#colMun").innerHTML = opts(detectar(P.cab, "mun"));
-  const prev = P.linhas.slice(0, 6);
-  $("#previa").innerHTML = `<tr>${P.cab.map(c => `<th>${esc(c)}</th>`).join("")}</tr>` + prev.map(l => `<tr>${P.cab.map((_, i) => `<td>${esc(l[i])}</td>`).join("")}</tr>`).join("");
+  for (const [tipo, id] of COLS) { $("#" + id).innerHTML = opts(detectar(P.cab, tipo, P.linhas)); $("#" + id).onchange = atualizarPrevia; }
+  $("#btnProcessar").textContent = `Processar ${fmt(P.linhas.length)} endereços`;
+  atualizarPrevia();
+}
+function colunasEscolhidas() {
+  const c = {}; for (const [tipo, id] of COLS) c[tipo] = +$("#" + id).value; return c;
+}
+/** Processa uma linha: endereço pelo motor; se houver coordenadas válidas, o quarteirão sai do ponto. */
+function processarLinha(l, c) {
+  const g = i => i >= 0 ? l[i] : "";
+  const ent = { rua: g(c.rua), numero: g(c.num), complemento: g(c.comp), bairro: g(c.bairro), cep: g(c.cep), municipio: g(c.mun) };
+  const res = MOTOR.processar(ent);
+  const lat = c.lat >= 0 ? numDec(l[c.lat]) : null, lon = c.lon >= 0 ? numDec(l[c.lon]) : null;
+  if (lat !== null && lon !== null && Math.abs(lat) > 1 && Math.abs(lon) > 1) {
+    const a = quarteiraoNoPonto(lat, lon);
+    if (a) {
+      const difere = res.quarteirao && res.quarteirao !== a.q ? `; pelo endereço seria ${res.quarteirao}` : "";
+      Object.assign(res, { quarteirao: a.q, zona: a.zona, confianca: "ALTA", metodo: "coordenadas da planilha" + (a.dist ? ` (na rua, a ${a.dist} m)` : ""),
+        lat, lon, municipio: "Paulínia", obs: [res.obs, difere.slice(2)].filter(Boolean).join("; ") });
+    } else if (res.confianca !== "OUTRA CIDADE") {
+      res.obs = [res.obs, "coordenadas da planilha fora da malha de quarteirões"].filter(Boolean).join("; ");
+    }
+  }
+  return { ent, res };
+}
+function atualizarPrevia() {
+  const c = colunasEscolhidas();
+  const amostra = (i) => { if (i < 0) return []; const v = []; for (const l of P.linhas) { const x = String(l[i] == null ? "" : l[i]).trim(); if (x) v.push(x); if (v.length >= 3) break; } return v; };
+  for (const [tipo, id] of COLS) {
+    const i = c[tipo], box = $("#mc-" + id), ex = $("#ex-" + id);
+    const vals = amostra(i);
+    const bate = i < 0 || conteudoBate(tipo, P.linhas.slice(0, 50).map(l => l[i]));
+    box.classList.toggle("ok", i >= 0 && bate); box.classList.toggle("alerta", i >= 0 && !bate);
+    ex.innerHTML = i < 0 ? "" : !bate ? `⚠ o conteúdo não parece ${{ num: "número de casa", rua: "endereço", cep: "CEP", lat: "latitude", lon: "longitude" }[tipo] || "o esperado"}: ${esc(vals.slice(0, 2).join(" · "))}`
+      : vals.length ? `ex.: <b>${esc(vals.join("  ·  "))}</b>` : "coluna vazia nas primeiras linhas";
+  }
+  if (c.rua < 0) {
+    $("#previa").innerHTML = `<tr><td class="nota" style="padding:20px">Escolha a coluna da rua para ver a prévia.</td></tr>`;
+    $("#previaResumo").textContent = ""; $("#btnProcessar").disabled = true;
+    $("#acaoResumo").textContent = "Falta escolher a coluna da rua."; return;
+  }
+  $("#btnProcessar").disabled = false; $("#acaoResumo").textContent = "";
+  const prev = P.linhas.slice(0, 10).map(l => processarLinha(l, c));
+  const comQ = prev.filter(p => p.res.quarteirao).length;
+  $("#previaResumo").innerHTML = `<span class="mono">${comQ}</span> de <span class="mono">${prev.length}</span> com quarteirão`;
+  $("#previa").innerHTML = `<tr><th>Endereço lido</th><th>Nº</th><th>Quarteirão</th><th>Confiança</th></tr>` + prev.map(({ ent, res }) => {
+    const rua = res.ruaEncontrada || res.ruaLimpa || String(ent.rua || "");
+    return `<tr><td class="end">${esc(rua)}${res.complemento ? ` <span class="nota">${esc(res.complemento)}</span>` : ""}</td><td class="mono">${res.numero != null ? res.numero + (res.sufixo || "") : "—"}</td><td class="mono"><b>${esc(res.quarteirao || "—")}</b></td><td><span class="tag ${confCls(res.confianca)}">${esc(res.confianca)}</span>${/coordenadas da planilha/.test(res.metodo) ? ' <span class="tag cond">PONTO</span>' : ""}</td></tr>`;
+  }).join("");
 }
 $("#btnTrocar").onclick = () => { $("#etapaColunas").classList.add("oculto"); $("#etapaArquivo").classList.remove("oculto"); };
 $("#btnNovo").onclick = () => {
@@ -496,7 +561,7 @@ $("#btnNovo").onclick = () => {
   P.rows = []; $("#etapaResultado").classList.add("oculto"); $("#etapaArquivo").classList.remove("oculto"); atualizarContRev();
 };
 $("#btnProcessar").onclick = async () => {
-  const c = { rua: +$("#colRua").value, num: +$("#colNum").value, comp: +$("#colComp").value, bairro: +$("#colBairro").value, cep: +$("#colCep").value, mun: +$("#colMun").value };
+  const c = colunasEscolhidas();
   if (c.rua < 0) { alert("Escolha a coluna da rua."); return; }
   P.cols = c;
   const g = (l, i) => i >= 0 ? l[i] : "";
@@ -505,8 +570,8 @@ $("#btnProcessar").onclick = async () => {
   const t0 = performance.now();
   for (let i = 0; i < P.linhas.length; i++) {
     const l = P.linhas[i];
-    const ent = { rua: g(l, c.rua), numero: g(l, c.num), complemento: g(l, c.comp), bairro: g(l, c.bairro), cep: g(l, c.cep), municipio: g(l, c.mun) };
-    P.rows.push({ i, orig: l, ent, res: MOTOR.processar(ent), manual: null });
+    const { ent, res } = processarLinha(l, c);
+    P.rows.push({ i, orig: l, ent, res, manual: null });
     if (i % 200 === 199) { $("#prog").style.width = (100 * i / P.linhas.length) + "%"; await sleep(0); }
   }
   console.log("processado em", Math.round(performance.now() - t0), "ms");
