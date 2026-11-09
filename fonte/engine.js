@@ -143,44 +143,59 @@
   const RE_TEL = /\(?\b\d{2}\)?\s*9?\s*\d{4}\s*-\s*\d{4}\b|\b9?\d{4}-\d{4}\b/g;
   const RE_COMP_COND = /\b(BLOCO|BL|QUADRA|QD|LOTE|LT|TORRE|APTO|AP|APARTAMENTO|CASA|CS|UNIDADE|UN|CONDOMINIO|COND|RESIDENCIAL)\b/;
 
+  // Número com letra: 100A, 100 A, 100-A, 100/A, Nº 100B… A letra é guardada como sufixo e o
+  // quarteirão é procurado pelo número (o "A" é o mesmo lote/imóvel desmembrado, na mesma face).
+  const COMPL = "APTO|APT|AP|APARTAMENTO|CASA|CS|BLOCO|BL|QUADRA|QD|LOTE|LT|FUNDOS|FDS|FUNDO|FRENTE|SALA|SL|LOJA|LJ|TORRE|UNIDADE|UN|SOBRADO|COND|CONDOMINIO|RES|KITNET|KIT|EDICULA|BOX|GALPAO";
+  const NUM = String.raw`(?:N[º°O]?\.?\s*|NUM(?:ERO)?\.?\s*)?(\d{1,5})(?:\s*[-\/]?\s*([A-Z])(?![A-Z0-9])(?!\s*\d))?`;
+  const RE_NUM_CAMPO = new RegExp(String.raw`^${NUM}(?![0-9])\s*[-,;.]?\s*(.*)$`);
+  const RE_NUM_VIRGULA = new RegExp(String.raw`,\s*${NUM}(?![0-9])(.*)$`);
+  const RE_NUM_COMPL = new RegExp(String.raw`(?:\s|(?<=[A-Z]))${NUM}\s+((?:${COMPL})\b.*)$`);
+  const RE_NUM_FIM = new RegExp(String.raw`(?:\s|(?<=[A-Z]))${NUM}\s*$`);
+
+  /** Lê o campo número: "100", "100A", "100 A", "100-A", "Nº 100B", "100 FUNDOS", "100A CASA 2". */
+  function lerCampoNumero(v) {
+    const t = limparNumero(v).replace(/\s+/g, " ").trim();
+    const m = t.match(RE_NUM_CAMPO);
+    if (!m || parseInt(m[1], 10) <= 0) return null;
+    return { n: parseInt(m[1], 10), sufixo: m[2] || "", resto: (m[3] || "").trim() };
+  }
+
   function separarRuaNumero(ruaBruta, numBruto) {
     const obs = [];
-    let complemento = "";
+    const comps = [];
     let rua = corrigirCodificacao(corrigirCodificacao(vazio(ruaBruta) ? "" : String(ruaBruta)).toUpperCase());
     if (RE_TEL.test(rua)) { rua = rua.replace(RE_TEL, " "); obs.push("telefone removido da rua"); }
     RE_TEL.lastIndex = 0;
-    rua = rua.replace(/\(\s*\)/g, " ");
-    let numRua = null;
-    let m = rua.match(/,\s*(?:N[º°O]?\.?\s*)?(\d{1,5})\b(.*)$/);
-    if (m) {
-      numRua = m[1];
-      if (m[2].trim()) { complemento = m[2].trim().replace(/^[,;\-\s]+/, ""); obs.push(`complemento separado: '${complemento}'`); }
+    rua = rua.replace(/\(\s*\)/g, " ").replace(/\s+/g, " ");
+    let numRua = null, sufRua = "";
+    let m = rua.match(RE_NUM_VIRGULA);
+    if (m) {                                                   // "RUA X, 100A FUNDOS"
+      numRua = m[1]; sufRua = m[2] || "";
+      const resto = (m[3] || "").trim().replace(/^[,;\-\s]+/, "");
+      if (resto) comps.push(resto);
       rua = rua.slice(0, m.index);
-    } else if ((m = rua.match(/(?:\s|(?<=[A-Z]))(?:N[º°O]?\.?\s*)?(\d{1,5})\s+((?:APTO|APT|AP|APARTAMENTO|CASA|CS|BLOCO|BL|QUADRA|QD|LOTE|LT|FUNDOS|FDS|FRENTE|SALA|SL|LOJA|LJ|TORRE|UNIDADE|UN|SOBRADO|COND|CONDOMINIO|RES)\b.*)$/))) {
-      // "AV JOSE PAULINO 1000 APTO 3": número antes do complemento
-      numRua = m[1];
-      complemento = m[2].trim(); obs.push(`complemento separado: '${complemento}'`);
+    } else if ((m = rua.match(RE_NUM_COMPL))) {                // "AV X 1000 APTO 3", "RUA X 51A CASA 2"
+      numRua = m[1]; sufRua = m[2] || ""; comps.push(m[3].trim());
       rua = rua.slice(0, m.index);
-    } else {
-      m = rua.match(/(?:\s|(?<=[A-Z]))(?:N[º°O]?\.?\s*)?(\d{1,5})\s*$/);
+    } else {                                                   // "RUA X 100", "RUA X 100A"
+      m = rua.match(RE_NUM_FIM);
       const antes = m ? textoBasico(rua.slice(0, m.index)).split(" ").filter(Boolean) : [];
-      const soTipo = antes.length === 0 || (antes.length === 1 && TIPOS[antes[0]]);          // "RUA 12"
+      const soTipo = antes.length === 0 || (antes.length === 1 && TIPOS[antes[0]]);          // "RUA 12", "RUA 12 A"
       const codigoVia = /\b(BRASIL|ESTRADA|RODOVIA|SP|SPA|BR|KM|PLN|ROD|EST|VICINAL)\s*\d*\s*$/.test(rua.slice(0, m ? m.index + m[0].length : 0));
-      if (m && !soTipo && !codigoVia) {
-        numRua = m[1];
-        rua = rua.slice(0, m.index);
-      }
+      if (m && !soTipo && !codigoVia) { numRua = m[1]; sufRua = m[2] || ""; rua = rua.slice(0, m.index); }
     }
     rua = rua.replace(/^[\s,;\-.:]+|[\s,;\-.:]+$/g, "");
     rua = rua.replace(/^(RUA|AV|AVENIDA|R)\s*[:.]\s*/, "$1 ");
 
-    const num = limparNumero(numBruto);
     let n = null, sufixo = "";
-    const m2 = num.match(/^(\d+)\s*([A-Z]?)$/);
-    if (m2 && parseInt(m2[1], 10) > 0) { n = parseInt(m2[1], 10); sufixo = m2[2]; }
-    if (n === null && numRua) { n = parseInt(numRua, 10); obs.push("número tirado do campo rua"); }
+    const cn = lerCampoNumero(numBruto);
+    if (cn) { n = cn.n; sufixo = cn.sufixo; if (cn.resto) comps.push(cn.resto); }
+    if (n === null && numRua) { n = parseInt(numRua, 10); sufixo = sufRua; obs.push("número tirado do campo rua"); }
     else if (n !== null && numRua && parseInt(numRua, 10) !== n) obs.push(`rua tinha outro número (${numRua}); usado ${n}`);
-    if (n === null) obs.push("sem número");
+    if (n === null) obs.push(/S\s*\/?\s*N\b|SEM N/.test(limparNumero(numBruto)) ? "sem número (S/N)" : "sem número");
+    if (sufixo) obs.push(`número com letra (${n}${sufixo}): quarteirão buscado pelo ${n}`);
+    const complemento = [...new Set(comps.filter(Boolean))].join(" ");
+    if (complemento) obs.push(`complemento separado: '${complemento}'`);
     return { rua, n, sufixo, obs, complemento };
   }
 
